@@ -14,4 +14,4 @@ View at [http://localhost:5174](http://localhost:5174)
 
 View the source code on GitHub:
 
-- [github.com/likelylogic/smooth-dnd/tree/master/demos/vue](https://github.com/likelylogic/smooth-dnd/tree/master/demos/vue)
+- [github.com/likelylogic/smooth-dnd/tree/main/demos/vue](https://github.com/likelylogic/smooth-dnd/tree/main/demos/vue)

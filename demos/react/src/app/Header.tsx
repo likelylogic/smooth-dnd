@@ -4,7 +4,7 @@ import type { DemoPage } from '@demo/shared'
 /** The `<>` glyph on the "source" link, inlined so there's no asset to ship. */
 const sourceIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZml0PSIiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiIGZvY3VzYWJsZT0iZmFsc2UiPgogICAgPHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgyNHYyNEgwVjB6Ij48L3BhdGg+CiAgICA8cGF0aCBkPSJNOS40IDE2LjZMNC44IDEybDQuNi00LjZMOCA2bC02IDYgNiA2IDEuNC0xLjR6bTUuMiAwbDQuNi00LjYtNC42LTQuNkwxNiA2bDYgNi02IDYtMS40LTEuNHoiIGZpbGw9IiNGRkYiPjwvcGF0aD4KPC9zdmc+Cg=='
 
-const sourceUrl = 'https://github.com/likelylogic/smooth-dnd/tree/master/demos/react/src/pages'
+const sourceUrl = 'https://github.com/likelylogic/smooth-dnd/tree/main/demos/react/src/pages'
 
 /**
  * `header.css` is shared with the Vue demo and sizes the bar for a single line

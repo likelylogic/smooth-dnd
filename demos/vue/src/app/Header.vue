@@ -18,7 +18,7 @@ function openCode () {
   if (!name) {
     return
   }
-  const url = `https://github.com/likelylogic/smooth-dnd/tree/master/demos/vue/src/pages/${String(name)}.vue`
+  const url = `https://github.com/likelylogic/smooth-dnd/tree/main/demos/vue/src/pages/${String(name)}.vue`
   window.open(url, '_blank')
 }
 </script>
