@@ -2,8 +2,29 @@
 
 Monorepo for [smooth-dnd](https://github.com/likelylogic/smooth-dnd) and its framework adapters.
 
-Forked from [kutlugsahin/smooth-dnd](https://github.com/kutlugsahin/smooth-dnd), with the Vue and
-React adapters merged in from their own repositories (their history is preserved).
+## Credit and relationship to the original
+
+All of the drag-and-drop engine here is the work of
+**[Kutlu Sahin](https://github.com/kutlugsahin)**, who wrote and maintained the original
+[smooth-dnd](https://github.com/kutlugsahin/smooth-dnd),
+[vue-smooth-dnd](https://github.com/kutlugsahin/vue-smooth-dnd) and
+[react-smooth-dnd](https://github.com/kutlugsahin/react-smooth-dnd), all under the MIT licence.
+The core engine is his and is essentially untouched here — the physics, the layout maths and the
+drop handling are all his work. What this project changes is the packaging and the tooling around
+it, plus a Vue 3 rewrite of the Vue adapter (the original targeted Vue 2). Please star the original
+repositories.
+
+This is an **independent fork**. It is maintained separately, its changes are not submitted back
+upstream, and it is not endorsed by the original author. It exists because the original packages
+were last published in 2022, and this fork wanted Vue 3 support, current tooling and somewhere to
+fix bugs — the upstream repositories remain the canonical `smooth-dnd`.
+
+It is deliberately not a GitHub fork, so that it has its own issue tracker and shows up in search.
+The three original repositories were subtree-merged rather than copied, so upstream authorship
+survives in `git log` and `git blame`.
+
+Packages are published under the `@likelylogic` scope, so they can't be confused with, and will
+never overwrite, the originals on npm.
 
 ## Layout
 
@@ -56,10 +77,8 @@ pnpm typecheck   # tsc / vue-tsc across all packages
 pnpm test        # vitest
 ```
 
-## Notes on the fork
+## What changed from upstream
 
-- Packages are scoped to `@likelylogic` because the unscoped names on npm belong to the original
-  author.
 - The Vue adapter targets **Vue 3**. The last published `vue-smooth-dnd` (0.8.1) was Vue 2; this is
   a rewrite, not a compatible upgrade.
 - Build tooling moved from Rollup 1 / Babel 7.3 / TypeScript 3.3 to Vite library mode and current
@@ -79,4 +98,12 @@ pnpm test        # vitest
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+MIT, as the original is — see [LICENSE](./LICENSE). Copyright for the original work remains with
+Kutlu Sahin, and every upstream licence file is kept byte-for-byte as it arrived rather than
+reassigned.
+
+One oddity worth knowing: `packages/vue-smooth-dnd/LICENSE` is MIT but names Claudéric Demers
+(2016), not Kutlu Sahin. That came in with the subtree merge — the upstream `vue-smooth-dnd`
+repository has always shipped it, most likely inherited from the Vue library template it was
+scaffolded from. It has been left exactly as found, since correcting someone else's copyright
+notice isn't this fork's call to make.
