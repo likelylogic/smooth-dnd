@@ -64,8 +64,13 @@ pnpm test        # vitest
   a rewrite, not a compatible upgrade.
 - Build tooling moved from Rollup 1 / Babel 7.3 / TypeScript 3.3 to Vite library mode and current
   TypeScript.
-- Declarations are emitted by `tsc --emitDeclarationOnly`, not a Vite plugin: TypeScript 7 removed
-  the JavaScript Compiler API that `vite-plugin-dts` relies on.
+- TypeScript is pinned to the **5.x** line, not the 7.x tagged `latest`. TypeScript 7 (the native
+  port) removed the JavaScript Compiler API and the `typescript/lib/tsc` entry point that much of
+  the ecosystem still reaches for — `vue-tsc` and `vite-plugin-dts` both fail outright against it.
+  Worth retrying once those catch up; nothing here depends on staying on 5.
+- Declarations are emitted by `tsc --emitDeclarationOnly` rather than a Vite plugin. This started as
+  a TypeScript 7 workaround but is kept because it is one fewer dependency and matches what the
+  original build did.
 - The adapters keep `@likelylogic/smooth-dnd` **external**. They configure the core by mutating its
   module singleton (`smoothDnD.dropHandler`, `smoothDnD.wrapChild`), so bundling a private copy
   would leave anyone importing the core directly holding a different, unconfigured instance.

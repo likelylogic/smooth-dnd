@@ -56,9 +56,20 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
+
+interface Item {
+  id: string
+  data: string
+}
+
+interface Flags {
+  drop: boolean
+  animate: boolean
+}
 
 let i = 0
 
@@ -66,111 +77,94 @@ function id () {
   return `item-${++i}`
 }
 
-function generate (num) {
+function generate (num: number): Item[] {
   return generateItems(5, i => ({
     id: id(),
-    data: `Draggable ${num} - ${i + 1}`
+    data: `Draggable ${num} - ${i + 1}`,
   }))
 }
 
-export default {
-  name: 'Events',
+const groups = ref<Item[][]>([])
+const flags = ref<Flags[]>([])
 
-  components: {
-    Container,
-    Draggable
-  },
+const logs = reactive<Record<string, boolean>>({
+  'get-child-payload': true,
+  'should-accept-drop': false,
+  'should-animate-drop': false,
+  'drag-start': true,
+  'drag-end': true,
+  'drag-enter': true,
+  'drag-leave': true,
+  'drop': true,
+})
 
-  data () {
-    return {
-      groups: [],
-      flags: [],
-      logs: {
-        'get-child-payload': true,
-        'should-accept-drop': false,
-        'should-animate-drop': false,
-        'drag-start': true,
-        'drag-end': true,
-        'drag-enter': true,
-        'drag-leave': true,
-        'drop': true
-      },
-      logPayload: true
-    }
-  },
+const logPayload = ref(true)
 
-  created () {
-    this.addColumn()
-  },
+// -----------------------------------------------------------------------------------------------------------------
+// callbacks
 
-  methods: {
+function getChildPayload (groupIndex: number, itemIndex: number) {
+  log('get-child-payload', groupIndex, itemIndex)
+  return groups.value[groupIndex][itemIndex]
+}
 
-    // -----------------------------------------------------------------------------------------------------------------
-    // callbacks
+function getShouldAcceptDrop (index: number, sourceContainerOptions: unknown, payload: unknown) {
+  log('should-accept-drop', sourceContainerOptions, payload)
+  return flags.value[index].drop
+}
 
-    getChildPayload (groupIndex, itemIndex) {
-      this.log('get-child-payload', groupIndex, itemIndex)
-      return this.groups[groupIndex][itemIndex]
-    },
+function getShouldAnimateDrop (index: number, sourceContainerOptions: unknown, payload: unknown) {
+  log('should-animate-drop', sourceContainerOptions, payload)
+  return flags.value[index].animate
+}
 
-    getShouldAcceptDrop (index, sourceContainerOptions, payload) {
-      this.log('should-accept-drop', sourceContainerOptions, payload)
-      return this.flags[index].drop
-    },
+// -----------------------------------------------------------------------------------------------------------------
+// events
 
-    getShouldAnimateDrop (index, sourceContainerOptions, payload) {
-      this.log('should-animate-drop', sourceContainerOptions, payload)
-      return this.flags[index].animate
-    },
+function onDragStart (...args: unknown[]) {
+  log('drag-start', ...args)
+}
 
-    // -----------------------------------------------------------------------------------------------------------------
-    // events
+function onDragEnd (...args: unknown[]) {
+  log('drag-end', ...args)
+}
 
-    onDragStart (...args) {
-      this.log('drag-start', ...args)
-    },
+function onDragEnter (...args: unknown[]) {
+  log('drag-enter', ...args)
+}
 
-    onDragEnd (...args) {
-      this.log('drag-end', ...args)
-    },
+function onDragLeave (...args: unknown[]) {
+  log('drag-leave', ...args)
+}
 
-    onDragEnter (...args) {
-      this.log('drag-enter', ...args)
-    },
+function onDrop (groupIndex: number, dropResult: DragResult) {
+  // Vue 3 proxies arrays, so plain index assignment is reactive (no Vue.set)
+  groups.value[groupIndex] = applyDrag(groups.value[groupIndex], dropResult)
+  log('drop', dropResult)
+}
 
-    onDragLeave (...args) {
-      this.log('drag-leave', ...args)
-    },
+// -----------------------------------------------------------------------------------------------------------------
+// app
 
-    onDrop (groupIndex, dropResult) {
-      // Vue 3 proxies arrays, so plain index assignment is reactive (no Vue.set)
-      this.groups[groupIndex] = applyDrag(this.groups[groupIndex], dropResult)
-      this.log('drop', dropResult)
-    },
+function addColumn () {
+  groups.value.push(generate(groups.value.length + 1))
+  flags.value.push({ drop: true, animate: true })
+}
 
-    // -----------------------------------------------------------------------------------------------------------------
-    // app
+function removeColumn () {
+  groups.value.pop()
+  flags.value.pop()
+}
 
-    addColumn () {
-      this.groups.push(generate(this.groups.length + 1))
-      this.flags.push({drop: true, animate: true})
-    },
-
-    removeColumn () {
-      this.groups.pop()
-      this.flags.pop()
-    },
-
-    log (name, ...args) {
-      if (this.logs[name]) {
-        this.logPayload
-          ? console.log(name, ...args)
-          : console.log(name)
-      }
-    }
-
+function log (name: string, ...args: unknown[]) {
+  if (logs[name]) {
+    logPayload.value
+      ? console.log(name, ...args)
+      : console.log(name)
   }
 }
+
+addColumn()
 </script>
 
 <style scoped>

@@ -5,15 +5,16 @@ import { applyDrag, generateItems } from '@demo/shared'
 interface Item {
   id: number
   data: string
-  height: string
 }
 
-/** Randomised item heights, which exercises the layout maths harder than uniform rows. */
-export default function Height () {
+/**
+ * The same sortable as `simple`, but in a fixed-height scrolling parent, so the
+ * list auto-scrolls as you drag near an edge.
+ */
+export default function SimpleScroller () {
   const [items, setItems] = useState<Item[]>(() => generateItems(50, index => ({
     id: index,
     data: 'Draggable' + index,
-    height: `${(40 + Math.random() * 200).toFixed()}px`,
   })))
 
   const onDrop = useCallback((result: DropResult) => {
@@ -22,11 +23,11 @@ export default function Height () {
 
   return (
     <div>
-      <div className="simple-page">
+      <div className="simple-page-scroller">
         <Container onDrop={onDrop}>
           {items.map(p => (
             <Draggable key={p.id}>
-              <div className="draggable-item" style={{ height: p.height }}>
+              <div className="draggable-item">
                 {p.data}
               </div>
             </Draggable>

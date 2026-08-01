@@ -21,26 +21,15 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
 
-export default {
-  name: 'Table',
+const items = ref(generateItems(50, i => ({ id: i, data: 'Draggable ' + i })))
 
-  components: {Container, Draggable},
-
-  data () {
-    return {
-      items: generateItems(50, i => ({id: i, data: 'Draggable ' + i}))
-    }
-  },
-
-  methods: {
-    onDrop (dropResult) {
-      this.items = applyDrag(this.items, dropResult)
-    }
-  }
+function onDrop (dropResult: DragResult) {
+  items.value = applyDrag(items.value, dropResult)
 }
 </script>
 

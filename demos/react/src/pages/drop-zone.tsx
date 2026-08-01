@@ -1,85 +1,72 @@
-import { Component } from 'react';
-import { Container, Draggable } from '@likelylogic/react-smooth-dnd';
-import { applyDrag, generateItems } from './utils.js';
+import { useCallback, useState } from 'react'
+import { Container, Draggable, type DropResult } from '@likelylogic/react-smooth-dnd'
 
+/** 1 = the zone holds the draggable, 0 = it's empty. */
+type Zone = 0 | 1
 
-class DropZone extends Component {
-	constructor(props) {
-		super(props);
-		this.onDrop = this.onDrop.bind(this);
-		this.dragEnter = this.dragEnter.bind(this);
-		this.dragLeave = this.dragLeave.bind(this);
+/**
+ * `behaviour: drop-zone` — targets that accept a drop without reordering their
+ * own children. Only one of the four zones holds the draggable at a time.
+ */
+export default function DropZone () {
+  const [zones, setZones] = useState<Zone[]>([1, 0, 0, 0])
+  const [classes, setClasses] = useState<string[]>(['', '', '', ''])
 
-		this.state = {
-			zones: [1, 0, 0, 0],
-			classes: ['', '', '', '']
-		};
-	}
-	render() {
-		return (
-			<div className="drop-zone">
-				{this.state.zones.map((p, i) => {
-					return (
-						<div key={i} className={`drop-zone-container ${this.state.classes[i]}`}>
-							<Container
-								style={{ height: '100%' }}
-								groupName="1"
-								behaviour="drop-zone"
-								onDrop={e => this.onDrop(i, e)}
-								onDragEnter={() => this.dragEnter(i)}
-								onDragLeave={() => this.dragLeave(i)}>
-								{p ? (
-									<Draggable>
-										<div className="drop-zone-draggable">
-											Draggable
-									</div>
-									</Draggable>
-								) : null}
-							</Container>
-						</div>
-					);
-				})}
-			</div>
-		);
-	}
+  const onDrop = useCallback((containerIndex: number, dropResult: DropResult) => {
+    const { addedIndex, removedIndex } = dropResult
 
-	onDrop(containerIndex, dropresult) {
-		const { addedIndex, removedIndex, payload } = dropresult;
-		if (addedIndex !== null || removedIndex !== null) {
-			const zones = [...this.state.zones];
-			if (removedIndex !== null) {
-				zones[containerIndex] = 0;
-			}
-			if (addedIndex !== null) {
-				zones[containerIndex] = 1;
-			}
-			this.setState({
-				zones
-			});
-		}
+    if (addedIndex !== null || removedIndex !== null) {
+      setZones(zones => {
+        const next = [...zones]
+        if (removedIndex !== null) {
+          next[containerIndex] = 0
+        }
+        if (addedIndex !== null) {
+          next[containerIndex] = 1
+        }
+        return next
+      })
+    }
 
-		const classes = [...this.state.classes];
-		classes[containerIndex] = '';
-		this.setState({
-			classes
-		});
-	}
+    setClasses(classes => {
+      const next = [...classes]
+      next[containerIndex] = ''
+      return next
+    })
+  }, [])
 
-	dragEnter(i) {
-		const classes = [...this.state.classes];
-		classes[i] = 'hover';
-		this.setState({
-			classes
-		});
-	}
+  const setHover = useCallback((index: number, hover: boolean) => {
+    setClasses(classes => {
+      const next = [...classes]
+      next[index] = hover ? 'hover' : ''
+      return next
+    })
+  }, [])
 
-	dragLeave(i) {
-		const classes = [...this.state.classes];
-		classes[i] = '';
-		this.setState({
-			classes
-		});
-	}
+  return (
+    <div className="drop-zone">
+      {zones.map((p, i) => (
+        <div key={i} className={`drop-zone-container ${classes[i]}`}>
+          <Container
+            style={{ height: '100%' }}
+            groupName="1"
+            behaviour="drop-zone"
+            onDrop={e => onDrop(i, e)}
+            onDragEnter={() => setHover(i, true)}
+            onDragLeave={() => setHover(i, false)}
+          >
+            {p
+              ? (
+                  <Draggable>
+                    <div className="drop-zone-draggable">
+                      Draggable
+                    </div>
+                  </Draggable>
+                )
+              : null}
+          </Container>
+        </div>
+      ))}
+    </div>
+  )
 }
-
-export default DropZone;

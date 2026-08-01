@@ -1,74 +1,36 @@
-import { Component } from 'react';
-import { Container, Draggable } from '@likelylogic/react-smooth-dnd';
-import { applyDrag, generateItems } from './utils.js';
+import { useCallback, useState } from 'react'
+import { Container, Draggable, type DropResult } from '@likelylogic/react-smooth-dnd'
+import { applyDrag, generateItems } from '@demo/shared'
 
-class Simple extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      items: generateItems(50, (index) => {
-        return {
-          id: index,
-          data: 'Draggable' + index
-        };
-      })
-    };
-  }
-  render() {
-    return (
-      <div>
-        <div className="simple-page">
-          <Container onDrop={e => this.setState({ items: applyDrag(this.state.items, e) })}>
-            {this.state.items.map(p => {
-              return (
-                <Draggable key={p.id}>
-                  <div className="draggable-item">
-                    {p.data}
-                  </div>
-                </Draggable>
-              );
-            })}
-          </Container>
-        </div>
-      </div>
-    );
-  }
+export interface Item {
+  id: number
+  data: string
 }
 
-class SimpleScroller extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      items: generateItems(50, (index) => {
-        return {
-          id: index,
-          data: 'Draggable' + index
-        };
-      })
-    };
-  }
-  render() {
-    return (
-      <div>
-        <div className="simple-page-scroller">
-          <Container onDrop={e => this.setState({ items: applyDrag(this.state.items, e) })}>
-            {this.state.items.map(p => {
-              return (
-                <Draggable key={p.id}>
-                  <div className="draggable-item">
-                    {p.data}
-                  </div>
-                </Draggable>
-              );
-            })}
-          </Container>
-        </div>
-      </div>
-    );
-  }
-}
+/** The baseline demo: one container, default options. */
+export default function Simple () {
+  const [items, setItems] = useState<Item[]>(() => generateItems(50, index => ({
+    id: index,
+    data: 'Draggable' + index,
+  })))
 
-export {
-  Simple,
-  SimpleScroller
-};
+  const onDrop = useCallback((result: DropResult) => {
+    setItems(items => applyDrag(items, result))
+  }, [])
+
+  return (
+    <div>
+      <div className="simple-page">
+        <Container onDrop={onDrop}>
+          {items.map(p => (
+            <Draggable key={p.id}>
+              <div className="draggable-item">
+                {p.data}
+              </div>
+            </Draggable>
+          ))}
+        </Container>
+      </div>
+    </div>
+  )
+}

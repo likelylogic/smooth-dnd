@@ -38,89 +38,93 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, type CSSProperties } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
 
-export default {
-  name: 'Nested',
+interface NestedItem {
+  id: number
+  type: 'draggable' | 'container'
+  data?: string
+  items?: NestedItem[]
+}
 
-  components: {Container, Draggable},
+function build (): NestedItem[] {
+  const items = generateItems<NestedItem>(30, i => ({
+    id: i,
+    type: 'draggable',
+    data: `Container 1 Draggable - ${i}`,
+  }))
 
-  data () {
-    const res = {
-      items: generateItems(30, i => ({
-        id: i,
-        type: 'draggable',
-        data: `Container 1 Draggable - ${i}`
-      })),
-      items2: generateItems(10, i => ({
-        id: i,
-        type: 'draggable',
-        data: `Container 2 Draggable - ${i}`
-      })),
-      items3: generateItems(4, i => ({
-        id: i,
-        type: 'draggable',
-        data: `Container 3 Draggable - ${i}`
-      })),
-      innerContainerStyle: {
-        padding: '20px 20px',
-        marginTop: '2px',
-        marginBottom: '2px',
-        border: '1px solid rgba(0,0,0,.125)',
-        backgroundColor: '#f4f5f9aa',
-        cursor: 'move'
-      }
-    }
+  const items2 = generateItems<NestedItem>(10, i => ({
+    id: i,
+    type: 'draggable',
+    data: `Container 2 Draggable - ${i}`,
+  }))
 
-    res.items[5] = {
-      id: 5,
-      type: 'container',
-      items: res.items2
-    }
+  const items3 = generateItems<NestedItem>(4, i => ({
+    id: i,
+    type: 'draggable',
+    data: `Container 3 Draggable - ${i}`,
+  }))
 
-    res.items[5].items[3] = {
-      id: 3,
-      type: 'container',
-      items: generateItems(4, i => ({
-        id: i,
-        type: 'draggable',
-        data: `Container 4 Draggable - ${i}`
-      }))
-    }
-
-    res.items[9] = {
-      id: 9,
-      type: 'container',
-      items: res.items3
-    }
-
-    return res
-  },
-  methods: {
-    onDrop (dropResult) {
-      this.items = applyDrag(this.items, dropResult)
-    },
-
-    onInnerDrop (item, dropResult) {
-      const newItems = [...this.items]
-      const index = newItems.indexOf(item)
-      newItems[index].items = applyDrag(newItems[index].items, dropResult)
-      this.items = newItems
-    },
-
-    onInnerDrop2 (item, item2, dropResult) {
-      const newItems = [...this.items]
-      const index = newItems.indexOf(item)
-      const index2 = item.items.indexOf(item2)
-      newItems[index].items[index2].items = applyDrag(
-        newItems[index].items[index2].items,
-        dropResult
-      )
-      this.items = newItems
-    }
+  items[5] = {
+    id: 5,
+    type: 'container',
+    items: items2,
   }
+
+  items[5].items![3] = {
+    id: 3,
+    type: 'container',
+    items: generateItems<NestedItem>(4, i => ({
+      id: i,
+      type: 'draggable',
+      data: `Container 4 Draggable - ${i}`,
+    })),
+  }
+
+  items[9] = {
+    id: 9,
+    type: 'container',
+    items: items3,
+  }
+
+  return items
+}
+
+const items = ref<NestedItem[]>(build())
+
+const innerContainerStyle: CSSProperties = {
+  padding: '20px 20px',
+  marginTop: '2px',
+  marginBottom: '2px',
+  border: '1px solid rgba(0,0,0,.125)',
+  backgroundColor: '#f4f5f9aa',
+  cursor: 'move',
+}
+
+function onDrop (dropResult: DragResult) {
+  items.value = applyDrag(items.value, dropResult)
+}
+
+function onInnerDrop (item: NestedItem, dropResult: DragResult) {
+  const newItems = [...items.value]
+  const index = newItems.indexOf(item)
+  newItems[index].items = applyDrag(newItems[index].items!, dropResult)
+  items.value = newItems
+}
+
+function onInnerDrop2 (item: NestedItem, item2: NestedItem, dropResult: DragResult) {
+  const newItems = [...items.value]
+  const index = newItems.indexOf(item)
+  const index2 = item.items!.indexOf(item2)
+  newItems[index].items![index2].items = applyDrag(
+    newItems[index].items![index2].items!,
+    dropResult,
+  )
+  items.value = newItems
 }
 </script>
 

@@ -35,12 +35,40 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, type CSSProperties } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
 
-const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+interface Card {
+  id: string
+  type: string
+  props: {
+    className: string
+    style: CSSProperties
+  }
+  data: string
+}
+
+interface Column {
+  id: string
+  type: string
+  name: string
+  props: {
+    orientation: string
+    className: string
+  }
+  children: Card[]
+}
+
+interface Scene {
+  type: string
+  props: { orientation: string }
+  children: Column[]
+}
+
+const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 
 const columnNames = ['Lorem', 'Ipsum', 'Consectetur', 'Eiusmod']
@@ -55,7 +83,7 @@ const cardColors = [
   'gainsboro',
   'ghostwhite',
   'ivory',
-  'khaki'
+  'khaki',
 ]
 
 const pickColor = () => {
@@ -63,86 +91,76 @@ const pickColor = () => {
   return cardColors[rand]
 }
 
-const scene = {
+const initialScene: Scene = {
   type: 'container',
   props: {
-    orientation: 'horizontal'
+    orientation: 'horizontal',
   },
-  children: generateItems(4, i => ({
+  children: generateItems<Column>(4, i => ({
     id: `column${i}`,
     type: 'container',
     name: columnNames[i],
     props: {
       orientation: 'vertical',
-      className: 'card-container'
+      className: 'card-container',
     },
-    children: generateItems(+(Math.random() * 10).toFixed() + 5, j => ({
+    children: generateItems<Card>(+(Math.random() * 10).toFixed() + 5, j => ({
       type: 'draggable',
       id: `${i}${j}`,
       props: {
         className: 'card',
-        style: {backgroundColor: pickColor()}
+        style: { backgroundColor: pickColor() },
       },
-      data: lorem.slice(0, Math.floor(Math.random() * 150) + 30)
-    }))
-  }))
+      data: lorem.slice(0, Math.floor(Math.random() * 150) + 30),
+    })),
+  })),
 }
 
-export default {
-  name: 'Cards',
+const scene = ref<Scene>(initialScene)
 
-  components: {Container, Draggable},
+const upperDropPlaceholderOptions = {
+  className: 'cards-drop-preview',
+  animationDuration: 150,
+  showOnTop: true,
+}
 
-  data () {
-    return {
-      scene,
-      upperDropPlaceholderOptions: {
-        className: 'cards-drop-preview',
-        animationDuration: '150',
-        showOnTop: true
-      },
-      dropPlaceholderOptions: {
-        className: 'drop-preview',
-        animationDuration: '150',
-        showOnTop: true
-      }
-    }
-  },
+const dropPlaceholderOptions = {
+  className: 'drop-preview',
+  animationDuration: 150,
+  showOnTop: true,
+}
 
-  methods: {
-    onColumnDrop (dropResult) {
-      const scene = Object.assign({}, this.scene)
-      scene.children = applyDrag(scene.children, dropResult)
-      this.scene = scene
-    },
+function onColumnDrop (dropResult: DragResult) {
+  const next = Object.assign({}, scene.value)
+  next.children = applyDrag(next.children, dropResult)
+  scene.value = next
+}
 
-    onCardDrop (columnId, dropResult) {
-      if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
-        const scene = Object.assign({}, this.scene)
-        const column = scene.children.filter(p => p.id === columnId)[0]
-        const columnIndex = scene.children.indexOf(column)
+function onCardDrop (columnId: string, dropResult: DragResult) {
+  if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
+    const next = Object.assign({}, scene.value)
+    const column = next.children.filter(p => p.id === columnId)[0]
+    const columnIndex = next.children.indexOf(column)
 
-        const newColumn = Object.assign({}, column)
-        newColumn.children = applyDrag(newColumn.children, dropResult)
-        scene.children.splice(columnIndex, 1, newColumn)
+    const newColumn = Object.assign({}, column)
+    newColumn.children = applyDrag(newColumn.children, dropResult)
+    next.children.splice(columnIndex, 1, newColumn)
 
-        this.scene = scene
-      }
-    },
-
-    getCardPayload (columnId) {
-      return index => {
-        return this.scene.children.filter(p => p.id === columnId)[0].children[index]
-      }
-    },
-
-    dragStart () {
-      console.log('drag started')
-    },
-
-    log (...params) {
-      console.log(...params)
-    }
+    scene.value = next
   }
+}
+
+function getCardPayload (columnId: string) {
+  return (index: number) => {
+    return scene.value.children.filter(p => p.id === columnId)[0].children[index]
+  }
+}
+
+function dragStart () {
+  console.log('drag started')
+}
+
+function log (...params: unknown[]) {
+  console.log(...params)
 }
 </script>

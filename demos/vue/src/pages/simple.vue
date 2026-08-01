@@ -10,31 +10,22 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
 
-export default {
-  name: 'Simple',
+const items = ref(generateItems(50, i => ({ id: i, data: 'Draggable ' + i })))
 
-  components: {Container, Draggable},
+function onDrop (dropResult: DragResult) {
+  items.value = applyDrag(items.value, dropResult)
+}
 
-  data () {
-    return {
-      items: generateItems(50, i => ({id: i, data: 'Draggable ' + i}))
-    }
-  },
+function getGhostParent () {
+  return document.body
+}
 
-  methods: {
-    onDrop (dropResult) {
-      this.items = applyDrag(this.items, dropResult)
-    },
-    getGhostParent(){
-      return document.body;
-    },
-    onDropReady(dropResult){
-      console.log('drop ready', dropResult);
-    }
-  }
+function onDropReady (dropResult: DragResult) {
+  console.log('drop ready', dropResult)
 }
 </script>

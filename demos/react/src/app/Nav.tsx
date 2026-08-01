@@ -6,6 +6,7 @@ export interface NavProps {
   /** Whether the nav is expanded; drives the `.open` / `.closed` class. */
   open: boolean
   onSelect: (name: string) => void
+  onToggle: () => void
 }
 
 /**
@@ -14,9 +15,20 @@ export interface NavProps {
  * The Vue demo wraps each item in a `<router-link>`; the React demo has no
  * router, so selection is lifted to `App` and passed back down.
  */
-export default function Nav ({ selected, open, onSelect }: NavProps) {
+export default function Nav ({ selected, open, onSelect, onToggle }: NavProps) {
+  const openClass = open ? 'open' : 'closed'
+
   return (
-    <div className={`nav ${open ? 'open' : 'closed'}`}>
+    <>
+      {/* the hamburger is position: fixed, so it sits outside the collapsing panel */}
+      <div className={`nav-button ${openClass}`} onClick={onToggle}>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+    <div className={`nav ${openClass}`}>
       <div className="nav-content">
         <div className="nav-header">
           <h3>react-smooth-dnd</h3>
@@ -42,5 +54,6 @@ export default function Nav ({ selected, open, onSelect }: NavProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }

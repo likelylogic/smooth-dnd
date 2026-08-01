@@ -10,7 +10,7 @@
       </Container>
     </div>
     <div style="margin-left: 50px; flex: 1">
-      <Container group-name="1" :get-child-payload="getChildPayload2" @drop="onDrop('items2', $event)">
+      <Container group-name="1" :get-child-payload="getChildPayload2" @drop="onDrop2">
         <Draggable v-for="item in items2" :key="item.id">
           <div class="draggable-item">
             {{item.data}}
@@ -19,7 +19,7 @@
       </Container>
     </div>
     <div style="margin-left: 50px; flex: 1">
-      <Container group-name="1" :get-child-payload="getChildPayload3" @drop="onDrop('items3', $event)">
+      <Container group-name="1" :get-child-payload="getChildPayload3" @drop="onDrop3">
         <Draggable v-for="item in items3" :key="item.id">
           <div class="draggable-item">
             {{item.data}}
@@ -30,48 +30,48 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag, generateItems } from '../utils/helpers'
+import { applyDrag, generateItems, type DragResult } from '@demo/shared'
 
-export default {
-  name: 'Copy',
+interface Item {
+  id: string
+  data: string
+}
 
-  components: {Container, Draggable},
+const items1 = ref<Item[]>(generateItems(15, i => ({
+  id: '1' + i,
+  data: `Source Draggable - ${i}`,
+})))
 
-  data () {
-    return {
-      items1: generateItems(15, i => ({
-        id: '1' + i,
-        data: `Source Draggable - ${i}`
-      })),
-      items2: generateItems(15, i => ({
-        id: '2' + i,
-        data: `Draggable 2 - ${i}`
-      })),
-      items3: generateItems(15, i => ({
-        id: '3' + i,
-        data: `Draggable 3 - ${i}`
-      }))
-    }
-  },
+const items2 = ref<Item[]>(generateItems(15, i => ({
+  id: '2' + i,
+  data: `Draggable 2 - ${i}`,
+})))
 
-  methods: {
-    onDrop (collection, dropResult) {
-      this[collection] = applyDrag(this[collection], dropResult)
-    },
+const items3 = ref<Item[]>(generateItems(15, i => ({
+  id: '3' + i,
+  data: `Draggable 3 - ${i}`,
+})))
 
-    getChildPayload1 (index) {
-      return this.items1[index]
-    },
+function onDrop2 (dropResult: DragResult) {
+  items2.value = applyDrag(items2.value, dropResult)
+}
 
-    getChildPayload2 (index) {
-      return this.items2[index]
-    },
+function onDrop3 (dropResult: DragResult) {
+  items3.value = applyDrag(items3.value, dropResult)
+}
 
-    getChildPayload3 (index) {
-      return this.items3[index]
-    }
-  }
+function getChildPayload1 (index: number) {
+  return items1.value[index]
+}
+
+function getChildPayload2 (index: number) {
+  return items2.value[index]
+}
+
+function getChildPayload3 (index: number) {
+  return items3.value[index]
 }
 </script>

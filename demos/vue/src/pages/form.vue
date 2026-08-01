@@ -61,36 +61,30 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref } from 'vue'
 import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
-import { applyDrag } from '../utils/helpers'
+import { applyDrag, type DragResult } from '@demo/shared'
 
-const formInitial = [
-  {type: 'header'},
-  {type: 'fullname', label: 'Full Name'},
-  {type: 'email', label: 'E Mail'},
-  {type: 'address', label: 'Address'},
-  {type: 'dropdown', label: 'Options'},
-  {type: 'checkbox', label: 'Checkbox Options'},
-  {type: 'radio', label: 'Radio Options'},
-  {type: 'submit'}
+interface Field {
+  type: string
+  label?: string
+}
+
+const formInitial: Field[] = [
+  { type: 'header' },
+  { type: 'fullname', label: 'Full Name' },
+  { type: 'email', label: 'E Mail' },
+  { type: 'address', label: 'Address' },
+  { type: 'dropdown', label: 'Options' },
+  { type: 'checkbox', label: 'Checkbox Options' },
+  { type: 'radio', label: 'Radio Options' },
+  { type: 'submit' },
 ]
 
-export default {
-  name: 'Form',
+const form = ref<Field[]>([...formInitial])
 
-  components: {Container, Draggable},
-
-  data () {
-    return {
-      form: [...formInitial]
-    }
-  },
-
-  methods: {
-    onDrop (dropResult) {
-      this.form = applyDrag(this.form, dropResult)
-    }
-  }
+function onDrop (dropResult: DragResult) {
+  form.value = applyDrag(form.value, dropResult)
 }
 </script>
