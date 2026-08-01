@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@demo/shared": "workspace:*",
     "@likelylogic/vue-smooth-dnd": "workspace:*",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
