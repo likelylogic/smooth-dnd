@@ -1,0 +1,23 @@
+{
+  "name": "demo-react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "React demo for @likelylogic/react-smooth-dnd",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@demo/shared": "workspace:*",
+    "@likelylogic/react-smooth-dnd": "workspace:*",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4"
+  }
+}

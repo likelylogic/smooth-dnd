@@ -1,0 +1,22 @@
+{
+  "name": "demo-vue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 demo for @likelylogic/vue-smooth-dnd",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@demo/shared": "workspace:*",
+    "@likelylogic/vue-smooth-dnd": "workspace:*",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8"
+  }
+}

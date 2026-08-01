@@ -1,0 +1,56 @@
+{
+  "name": "@likelylogic/smooth-dnd",
+  "version": "0.12.1",
+  "description": "Drag and drop library for javascript",
+  "type": "module",
+  "main": "./dist/smooth-dnd.umd.cjs",
+  "module": "./dist/smooth-dnd.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/smooth-dnd.js",
+      "require": "./dist/smooth-dnd.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "sortable",
+    "drag and drop",
+    "drag&drop",
+    "drag",
+    "drop",
+    "draggable",
+    "dnd"
+  ],
+  "author": {
+    "name": "Kutlu Sahin",
+    "email": "kutlugsahin@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/smooth-dnd"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    
+  }
+}

@@ -271,12 +271,17 @@ export const isMobile = () => {
 
 export const clearSelection = () => {
   if (window.getSelection) {
-    if (window.getSelection().empty) {
+    // getSelection() is nullable — a detached or hidden document returns null.
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+    if (selection.empty) {
       // Chrome
-      window.getSelection().empty();
-    } else if (window.getSelection().removeAllRanges) {
+      selection.empty();
+    } else if (selection.removeAllRanges) {
       // Firefox
-      window.getSelection().removeAllRanges();
+      selection.removeAllRanges();
     }
   } else if ((window.document as any).selection) {
     // IE?

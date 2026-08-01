@@ -1,0 +1,66 @@
+{
+  "name": "@likelylogic/vue-smooth-dnd",
+  "version": "1.0.0",
+  "description": "Vue 3 wrappers for smooth-dnd",
+  "type": "module",
+  "main": "./dist/vue-smooth-dnd.umd.cjs",
+  "module": "./dist/vue-smooth-dnd.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/vue-smooth-dnd.js",
+      "require": "./dist/vue-smooth-dnd.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "dev": "vite build --watch",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "Vue",
+    "Vue.js",
+    "vue3",
+    "sortable",
+    "drag and drop",
+    "drag&drop",
+    "drag",
+    "drop",
+    "draggable",
+    "dnd",
+    "smooth-dnd"
+  ],
+  "author": "Kutlu Sahin",
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/vue-smooth-dnd"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@likelylogic/smooth-dnd": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
+    "vue": "^3.5.40",
+    "vue-tsc": "^3.3.9"
+  }
+}

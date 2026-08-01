@@ -91,7 +91,6 @@ function getGhostElement(wrapperElement: HTMLElement, { x, y }: Position, contai
   ghost.style.position = 'fixed';
   ghost.style.top = '0px';
   ghost.style.left = '0px';
-  ghost.style.transform = null;
   ghost.style.removeProperty('transform');
 
   if (container.shouldUseTransformForGhost()) {
@@ -499,7 +498,9 @@ function onMouseUp() {
 }
 
 function getPointerEvent(e: TouchEvent & MouseEvent): MouseEvent & TouchEvent {
-  return e.touches ? e.touches[0] : e as any;
+  // Touch and MouseEvent overlap only in the coordinate properties this code
+  // reads, so the cast is deliberate rather than a structural match.
+  return e.touches ? (e.touches[0] as any) : (e as any);
 }
 
 function handleDragImmediate(draggableInfo: DraggableInfo, dragListeningContainers: IContainer[]) {

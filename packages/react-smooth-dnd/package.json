@@ -1,0 +1,68 @@
+{
+  "name": "@likelylogic/react-smooth-dnd",
+  "version": "1.0.0",
+  "description": "React wrappers for smooth-dnd",
+  "type": "module",
+  "main": "./dist/react-smooth-dnd.umd.cjs",
+  "module": "./dist/react-smooth-dnd.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/react-smooth-dnd.js",
+      "require": "./dist/react-smooth-dnd.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "react",
+    "sortable",
+    "drag and drop",
+    "drag&drop",
+    "drag",
+    "drop",
+    "draggable",
+    "dnd",
+    "smooth-dnd"
+  ],
+  "author": {
+    "name": "Kutlu Sahin",
+    "email": "kutlugsahin@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/react-smooth-dnd"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@likelylogic/smooth-dnd": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}
