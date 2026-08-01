@@ -11,10 +11,10 @@ import { defaultPage, pages } from '@demo/shared'
  * listed in the manifest but not implemented here fails at startup rather than
  * silently on navigation.
  */
-const modules = import.meta.glob<{ default: Component }>('./pages/*.vue', { eager: true })
+const modules = import.meta.glob<{ default: Component }>('../pages/*.vue', { eager: true })
 
 const components = Object.entries(modules).reduce((output, [path, module]) => {
-  const name = path.replace('./pages/', '').replace('.vue', '')
+  const name = path.replace('../pages/', '').replace('.vue', '')
   output[name] = module.default
   return output
 }, {} as Record<string, Component>)
