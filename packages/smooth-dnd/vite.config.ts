@@ -1,7 +1,9 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
 
+// Declarations are emitted by `tsc --emitDeclarationOnly` in the build script
+// rather than a Vite plugin: TypeScript 7 removed the JavaScript Compiler API
+// that vite-plugin-dts depends on.
 export default defineConfig({
   build: {
     lib: {
@@ -10,11 +12,9 @@ export default defineConfig({
       fileName: 'smooth-dnd',
     },
     sourcemap: true,
+    rollupOptions: {
+      // index.ts has both named exports and a deprecated default export.
+      output: { exports: 'named' },
+    },
   },
-  plugins: [
-    dts({
-      include: ['index.ts', 'src/**/*.ts'],
-      rollupTypes: false,
-    }),
-  ],
 })

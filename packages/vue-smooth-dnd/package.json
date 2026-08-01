@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "dev": "vite build --watch",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run"
@@ -60,7 +60,6 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",
-    "vite-plugin-dts": "^5.0.3",
     "vue": "^3.5.40",
     "vue-tsc": "^3.3.9"
   }

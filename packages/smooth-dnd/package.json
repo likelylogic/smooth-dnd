@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -51,6 +51,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "vite-plugin-dts": "^5.0.3"
+    
   }
 }

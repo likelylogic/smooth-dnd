@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -64,7 +64,6 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "vite-plugin-dts": "^5.0.3"
+    "react-dom": "^19.2.8"
   }
 }

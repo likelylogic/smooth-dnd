@@ -4,7 +4,11 @@ import { constants } from '@likelylogic/smooth-dnd'
 const { wrapperClass } = constants
 
 export interface DraggableProps {
-  render?: () => React.ReactElement
+  /**
+   * Render the draggable yourself. The returned element is cloned with the
+   * wrapper class applied, so it must accept a `className`.
+   */
+  render?: () => React.ReactElement<{ className?: string }>
   className?: string
   children?: React.ReactNode
 }
