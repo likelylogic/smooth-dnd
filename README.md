@@ -13,13 +13,19 @@ packages/
   vue-smooth-dnd/      @likelylogic/vue-smooth-dnd     Vue 3 adapter
   react-smooth-dnd/    @likelylogic/react-smooth-dnd   React adapter
 demos/
-  javascript/          vanilla JS demo
+  shared/              @demo/shared    styles, page manifest, helpers
   vue/                 Vue 3 demo
   react/               React demo
 ```
 
 The adapters depend on the core package via `workspace:*`, so they always build against local
 source. The demos do the same.
+
+The two demos deliberately mirror each other — same page names, same structure, same CSS classes —
+so a page can be diffed across frameworks when chasing an adapter bug.
+[`demos/shared/navigation.ts`](./demos/shared/navigation.ts) is the single source of truth for
+which pages exist; a page listed there with no implementation fails loudly at startup, which is
+what keeps the two from drifting.
 
 ## Getting started
 
@@ -32,7 +38,6 @@ The demos consume the packages' built output, so run `pnpm build` at least once 
 one:
 
 ```bash
-pnpm dev:javascript   # http://localhost:5173
 pnpm dev:vue          # http://localhost:5174
 pnpm dev:react        # http://localhost:5175
 ```
@@ -59,6 +64,13 @@ pnpm test        # vitest
   a rewrite, not a compatible upgrade.
 - Build tooling moved from Rollup 1 / Babel 7.3 / TypeScript 3.3 to Vite library mode and current
   TypeScript.
+- Declarations are emitted by `tsc --emitDeclarationOnly`, not a Vite plugin: TypeScript 7 removed
+  the JavaScript Compiler API that `vite-plugin-dts` relies on.
+- The adapters keep `@likelylogic/smooth-dnd` **external**. They configure the core by mutating its
+  module singleton (`smoothDnD.dropHandler`, `smoothDnD.wrapChild`), so bundling a private copy
+  would leave anyone importing the core directly holding a different, unconfigured instance.
+- Vite is pinned to 7 because `@vitejs/plugin-react` 6 requires Vite 8. The React side uses
+  esbuild's JSX transform instead, which costs only React Fast Refresh in the demo.
 
 ## Licence
 
