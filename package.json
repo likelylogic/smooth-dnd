@@ -10,7 +10,6 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev:javascript": "pnpm --filter demo-javascript dev",
     "dev:vue": "pnpm --filter demo-vue dev",
     "dev:react": "pnpm --filter demo-react dev"
   },

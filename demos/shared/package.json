@@ -1,0 +1,12 @@
+{
+  "name": "@demo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Styles, page manifest and helpers shared by the smooth-dnd demos",
+  "exports": {
+    ".": "./index.ts",
+    "./styles": "./styles/index.css",
+    "./styles/*": "./styles/*"
+  }
+}
