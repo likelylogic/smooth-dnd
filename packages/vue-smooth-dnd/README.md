@@ -1,114 +1,228 @@
 # Vue Smooth DnD
 
-A fast and lightweight drag&drop, sortable library for Vue.js with many configuration options covering many d&d scenarios.
+A fast and lightweight drag & drop, sortable library for Vue, with many configuration options covering many d&d scenarios.
 
-This library consists wrapper Vue.js components over [smooth-dnd](https://github.com/kutlugsahin/smooth-dnd) library.
+This package is a pair of thin Vue components – `Container` and `Draggable` – wrapping the framework-agnostic [smooth-dnd](https://github.com/likelylogic/smooth-dnd) library.
 
-## Demo
+## Vue 3 only
 
-View the demo here:
+This package targets **Vue 3** (peer dependency `vue: ^3.3.0`).
 
-- https://kutlugsahin.github.io/vue-smooth-dnd
+If you are coming from the original `vue-smooth-dnd` (0.8.x and earlier) note that:
+
+- that package was **Vue 2 only**, and is not compatible with Vue 3
+- this package is a rewrite, not a drop-in upgrade – the package name has changed, and the `tag` prop's object form is different
+
+See [Migrating from vue-smooth-dnd 0.8.x](#migrating-from-vue-smooth-dnd-08x) for the details.
 
 ## Installation
 
 ```shell
-npm i vue-smooth-dnd
+pnpm add @likelylogic/vue-smooth-dnd
 ```
+
+```shell
+npm install @likelylogic/vue-smooth-dnd
+```
+
+```shell
+yarn add @likelylogic/vue-smooth-dnd
+```
+
+The core library is pulled in as a dependency, and its styles are injected at runtime, so there is no CSS file to import.
 
 ## Usage
 
-### Vue 
+Import the components and use them directly:
 
-```jsx
+```vue
 <template>
-  <div>
-    <div class="simple-page">
-        <Container @drop="onDrop">            
-          <Draggable v-for="item in items" :key="item.id">
-            <div class="draggable-item">
-              {{item.data}}
-            </div>
-          </Draggable>
-        </Container>
-    </div>
-  </div>
+  <Container @drop="onDrop">
+    <Draggable v-for="item in items" :key="item.id">
+      <div class="draggable-item">
+        {{ item.data }}
+      </div>
+    </Draggable>
+  </Container>
 </template>
 
-<script>
-import { Container, Draggable } from "vue-smooth-dnd";
-import { applyDrag, generateItems } from "./utils";
-export default {
-  name: "Simple",
-  components: { Container, Draggable },
-  data() {
-    return {
-      items: generateItems(50, i => ({ id: i, data: "Draggable " + i }))
-    };
-  },
-  methods: {  
-    onDrop(dropResult) {
-      this.items = applyDrag(this.items, dropResult);
-    }
+<script setup>
+import { ref } from 'vue'
+import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
+
+const items = ref([
+  { id: 1, data: 'Draggable 1' },
+  { id: 2, data: 'Draggable 2' },
+  { id: 3, data: 'Draggable 3' },
+])
+
+function onDrop ({ removedIndex, addedIndex, payload }) {
+  if (removedIndex === null && addedIndex === null) {
+    return
   }
-};
+
+  const result = [...items.value]
+  let itemToAdd = payload
+
+  if (removedIndex !== null) {
+    itemToAdd = result.splice(removedIndex, 1)[0]
+  }
+
+  if (addedIndex !== null) {
+    result.splice(addedIndex, 0, itemToAdd)
+  }
+
+  items.value = result
+}
 </script>
 ```
 
-## API: Container
+That `onDrop` body is the standard "apply drag" pattern – remove at `removedIndex`, insert at `addedIndex` – and is worth extracting to a helper if you have more than one list:
 
-Component that contains the draggable elements or components. Each of its children should be wrapped by **Draggable** component
+```js
+export function applyDrag (arr, dropResult) {
+  const { removedIndex, addedIndex, payload } = dropResult
+  if (removedIndex === null && addedIndex === null) {
+    return arr
+  }
 
+  const result = [...arr]
+  let itemToAdd = payload
 
-## Properties
+  if (removedIndex !== null) {
+    itemToAdd = result.splice(removedIndex, 1)[0]
+  }
 
-Properties define the visual behaviour of the library:
+  if (addedIndex !== null) {
+    result.splice(addedIndex, 0, itemToAdd)
+  }
 
- |  Property  |  Type  |  Default  |  Description  | 
- |  -  |  :-:  |  :-:  |  -  | 
- |  :orientation  | string | `vertical`  |  Orientation of the container. Can be **horizontal** or **vertical**. | 
- |  :behaviour | string | `move` |  Property to describe weather the dragging item will be moved or copied to target container. Can be **move** or **copy** or **drop-zone** or **contain**.
- |  :tag | string or NodeDescription | `div` | *See descriptions below*
- |  :group-name | string | `undefined` | Draggables can be moved between the containers having the same group names. If not set container will not accept drags from outside. This behaviour can be overriden by shouldAcceptDrop function. See below.
- |  :lock-axis | string | `undefined` | Locks the movement axis of the dragging. Possible values are **x**, **y** or **undefined**.
- |  :drag-handle-selector | string | `undefined` | Css selector to test for enabling dragging. If not given item can be grabbed from anywhere in its boundaries.
- |  :non-drag-area-selector | string | `undefined` | Css selector to prevent dragging. Can be useful when you have form elements or selectable text somewhere inside your draggable item. It has a precedence over **dragHandleSelector**.
- |  :drag-begin-delay | number |  `0` (`200` for touch devices) | Time in milisecond. Delay to start dragging after item is pressed. Moving cursor before the delay more than 5px will cancel dragging.
- |  :animation-duration | number | `250` | Animation duration in milisecond. To be consistent this animation duration will be applied to both drop and reorder animations.
- |  :auto-scroll-enabled | boolean | `true` | First scrollable parent will scroll automatically if dragging item is close to boundaries.
- |  :drag-class | string | `undefined` | Class to be added to the ghost item being dragged. The class will be added after it's added to the DOM so any transition in the class will be applied as intended.
- |  :drop-class | string | `undefined` | Class to be added to the ghost item just before the drop animation begins.
-|:remove-on-drop-out|boolean|`undefined`|When set true onDrop will be called with a removedIndex if you drop element out of any relevant container|
-|:drop-placeholder|boolean,object|`undefined`|Options for drop placeholder. **className**, **animationDuration**, **showOnTop**|
-
-
-### `tag`
-
-Tag name or the node definition to render the root element of the Container.
-Default value is 'div'.
-
-```ts
-:tag="{value: 'table', props: {class: 'my-table'}}"
-```
-```ts
-tag="table"
+  return result
+}
 ```
 
-#### possible values
-- string : The tag name of the root element to be created
-- object : Node definition
-  - value: string : tag name
-  - props: data object to define element properties. see [https://vuejs.org/v2/guide/render-function.html#The-Data-Object-In-Depth](https://vuejs.org/v2/guide/render-function.html#The-Data-Object-In-Depth)
+The same thing with the Options API:
+
+```vue
+<script>
+import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
+import { applyDrag } from './utils'
+
+export default {
+  components: {
+    Container,
+    Draggable,
+  },
+
+  data () {
+    return {
+      items: [
+        { id: 1, data: 'Draggable 1' },
+      ],
+    }
+  },
+
+  methods: {
+    onDrop (dropResult) {
+      this.items = applyDrag(this.items, dropResult)
+    },
+  },
+}
+</script>
+```
+
+Note that when items move **between** containers, `payload` is what makes the moved item available to the target container – so any container you want to drag *out of* needs a [`get-child-payload`](#get-child-payload) function.
 
 ---
 
+## API: Container
+
+The component that contains the draggable elements or components. Each of its children should be wrapped in a **Draggable** component.
+
+### Props
+
+Props are only forwarded to smooth-dnd if you actually set them, so anything you leave off falls back to the core library's own default. The "Default" column below shows the effective value.
+
+| Prop | Type | Default | Description |
+| - | :-: | :-: | - |
+| `:behaviour` | `'move' \| 'copy' \| 'drop-zone' \| 'contain'` | `move` | Whether the dragged item is moved or copied to the target container. With `drop-zone` no draggable slides to open a gap when a container is dragged over. |
+| `:group-name` | `string` | `undefined` | Draggables can be moved between containers sharing the same group name. If not set, the container will not accept drags from outside. Can be overridden by [`should-accept-drop`](#should-accept-drop). |
+| `:orientation` | `'vertical' \| 'horizontal'` | `vertical` | Orientation of the container. |
+| `:drag-handle-selector` | `string` | `undefined` | CSS selector to test for enabling dragging. If not given, an item can be grabbed anywhere within its bounds. |
+| `:non-drag-area-selector` | `string` | `undefined` | CSS selector to prevent dragging. Useful for form elements or selectable text inside a draggable. Takes precedence over `drag-handle-selector`. |
+| `:drag-begin-delay` | `number` | `0` (`200` for touch) | Milliseconds to wait after press before dragging starts. Moving the cursor more than 5px before the delay elapses cancels the drag. |
+| `:animation-duration` | `number` | `250` | Animation duration in milliseconds, applied to both drop and reorder animations. |
+| `:auto-scroll-enabled` | `boolean` | `true` | The first scrollable parent scrolls automatically when the dragged item nears its boundaries. |
+| `:lock-axis` | `'x' \| 'y'` | `undefined` | Locks the movement axis of the drag. |
+| `:drag-class` | `string` | `undefined` | Class added to the ghost item being dragged. It is added *after* the ghost enters the DOM, so transitions in the class apply as intended. |
+| `:drop-class` | `string` | `undefined` | Class added to the ghost item just before the drop animation begins. |
+| `:remove-on-drop-out` | `boolean` | `false` | When true, `@drop` is emitted with a `removedIndex` if you drop the element outside any relevant container. |
+| `:drop-placeholder` | `boolean \| DropPlaceholderOptions` | `undefined` | Shows a placeholder at the drop position. Pass `true` for the default, or an object with `className`, `animationDuration` and `showOnTop`. |
+| `:get-child-payload` | `(index: number) => unknown` | `undefined` | See [get-child-payload](#get-child-payload). |
+| `:should-animate-drop` | `(sourceOptions, payload) => boolean` | `undefined` | See [should-animate-drop](#should-animate-drop). |
+| `:should-accept-drop` | `(sourceOptions, payload) => boolean` | `undefined` | See [should-accept-drop](#should-accept-drop). |
+| `:get-ghost-parent` | `() => HTMLElement` | `undefined` | See [get-ghost-parent](#get-ghost-parent). |
+| `:tag` | `string \| TagObject` | `div` | See [tag](#tag). |
+
+The four function props are **props, not events** – they are called to *ask a question* and their return value matters. Everything else that happens during a drag is delivered as an [event](#events).
+
+### `tag`
+
+The tag name, or a tag description, for the root element the Container renders:
+
+```html
+<Container tag="ul">
+```
+
+```html
+<Container :tag="{ value: 'ul', props: { class: 'my-list' } }">
+```
+
+Possible values:
+
+- `string` – the tag name of the root element to create
+- `object` – a tag description
+  - `value` : `string` – the tag name
+  - `props` : `object` – a **flat** props object, spread onto the created element
+
+> **Breaking change from 0.8.x:** `props` is now a flat object, matching Vue 3's [`h()`](https://vuejs.org/guide/extras/render-function.html#creating-vnodes) signature. Vue 2's nested data object (`{ attrs, props, on, domProps, ... }`) is gone – write `{ class: 'x', id: 'y' }`, not `{ attrs: { id: 'y' } }`.
+
+Attributes set on the component itself fall through to the root element as usual, so `tag.props` is only needed when you want to build the tag description dynamically.
+
+### Template ref
+
+The Container exposes the underlying smooth-dnd instance as `container`, for the occasions you need imperative access:
+
+```vue
+<template>
+  <Container ref="list">
+    ...
+  </Container>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Container } from '@likelylogic/vue-smooth-dnd'
+
+const list = ref(null)
+
+function refresh () {
+  // SmoothDnD: { dispose(), setOptions(options, merge?) }
+  list.value.container.setOptions({ animationDuration: 500 }, true)
+}
+</script>
+```
+
+It is `null` before mount and after unmount. Note that the component calls `setOptions()` itself on every update, so options you set imperatively will be overwritten – prefer props unless you have a specific reason not to.
+
+---
 
 ## Lifecycle
 
-The lifecycle of a drag is both described, and can be controlled, by a series of [callbacks](#callbacks) and [events](#events), which are illustrated below for a example **containing 3 containers**:
+The lifecycle of a drag is both described, and can be controlled, by the function [props](#props) and [events](#events), illustrated below for an example **containing 3 containers**:
 
 ```
-Mouse     Calls  Callback / Event       Parameters              Notes
+Mouse     Calls  Prop / Event           Parameters              Notes
 
 down   o                                                        Initial click
 
@@ -127,6 +241,7 @@ move   o                                                        Drag over contai
        |
        |   n x   drag-leave                                     Fired as draggable leaves container
        |   n x   drag-enter                                     Fired as draggable enters container
+       |   n x   drop-ready             dropResult              Fired as the drop index changes
        v
 
 up     o                                                        Finish drag
@@ -138,269 +253,302 @@ up     o                                                        Finish drag
            n x   drop                   dropResult              Fired only for droppable containers
 ```
 
-Note that `should-accept-drop` is fired before every `drag-start`, and before every `drag-end`, but has been omitted here for clarity.
-
-The `dragResult` parameter has the format:
+The `dragResult` parameter (`DragStartParams` / `DragEndParams`) has the format:
 
 ```js
-dragResult: {
-    payload,
-    isSource,
-    willAcceptDrop,
+{
+  payload,
+  isSource,
+  willAcceptDrop,
 }
 ```
 
-The `dropResult` parameter has the format:
+The `dropResult` parameter (`DropResult`) has the format:
 
 ```js
-dropResult: {
-    addedIndex,
-    removedIndex,
-    payload,
-    droppedElement,
+{
+  removedIndex,
+  addedIndex,
+  payload,
+  element,     // drop-ready only
 }
 ```
 
-Note that additional parameters can be passed to callbacks and event handlers by writing an interim handler *inline* in the markup:
+Note that additional parameters can be passed to props and event handlers by writing an interim handler *inline* in the markup:
 
-```jsx
-<div v-for="(items, index) in groups"
-  <Container group-name="column"
+```html
+<div v-for="(items, index) in groups" :key="index">
+  <Container
+    group-name="column"
     :should-accept-drop="(src, payload) => getShouldAcceptDrop(index, src, payload)"
-    >
+    @drop="onDrop(index, $event)"
+  >
     ...
   </Container>
 </div>
 ```
 
-This can provide handler functions context-sensitive data, such as the loop index or current item.
+This gives your handlers context-sensitive data, such as the loop index or current item.
 
-## Callbacks
+---
 
-Callbacks provide additional logic and checks before and during user interaction.
+## Function props
 
-### `get-child-payload()`
+These provide additional logic and checks before and during user interaction. Because their return values are used, they are bound as props (`:get-child-payload="..."`) rather than listened to as events.
 
-The function to be called to get the payload object to be passed **onDrop** function.
+### `get-child-payload`
 
-```jsx
+Called to get the payload object passed to the [`@drop`](#drop) handler.
+
+```html
 <Container :get-child-payload="getChildPayload">
 ```
-```ts
-getChildPayload (index) {
-  return {
-    // generate custom payload data here
-  }
+
+```js
+function getChildPayload (index) {
+  return items.value[index]
 }
 ```
 
-#### Parameters
-- **index** : `number` : index of the child item
+Parameters:
 
-#### Returns
-- **payload** : `object`
+- **index** : `number` – index of the child item
 
+Returns:
 
-### `should-accept-drop()`
+- **payload** : `any`
 
-The function to be called by all containers before drag starts to determine the containers to which the drop is possible. Setting this function will override the **group-name** property and only the return value of this function will be taken into account.
+### `should-accept-drop`
 
-```jsx
+Called on all containers before a drag starts, to determine which containers can be dropped into. Setting this overrides the `group-name` prop – only the return value of this function is taken into account.
+
+```html
 <Container :should-accept-drop="shouldAcceptDrop">
 ```
-```ts
-shouldAcceptDrop (sourceContainerOptions, payload) {
-  return true;
+
+```js
+function shouldAcceptDrop (sourceContainerOptions, payload) {
+  return true
 }
 ```
 
-#### Parameters
+Parameters:
 
-- **sourceContainerOptions** : `object` : options of the source container. (parent container of the dragged item)
-- **payload** : `object` : the payload object retrieved by calling [get-child-payload](#get-child-payload) function.
+- **sourceContainerOptions** : `ContainerOptions` – options of the source container (the parent container of the dragged item)
+- **payload** : `any` – the payload returned by [`get-child-payload`](#get-child-payload)
 
-#### Returns
-- **boolean** : **true / false**
+Returns:
 
+- `boolean`
 
-### `should-animate-drop()`
+### `should-animate-drop`
 
-The function to be called by the target container to which the dragged item will be dropped.
-Sometimes dragged item's dimensions are not suitable with the target container and dropping animation can be wierd. So it can be disabled by returning **false**. If not set drop animations are enabled.
+Called on the target container the dragged item will be dropped into. Sometimes the dragged item's dimensions do not suit the target container and the drop animation looks odd, so it can be disabled by returning **false**. If not set, drop animations are enabled.
 
-```jsx
+```html
 <Container :should-animate-drop="shouldAnimateDrop">
 ```
-```ts
-shouldAnimateDrop (sourceContainerOptions, payload) {
-  return false;
+
+```js
+function shouldAnimateDrop (sourceContainerOptions, payload) {
+  return false
 }
 ```
 
-#### Parameters
+Parameters:
 
-- **sourceContainerOptions** : `object` : options of the source container. (parent container of the dragged item)
-- **payload** : `object` : the payload object retrieved by calling [get-child-payload](#get-child-payload) function.
+- **sourceContainerOptions** : `ContainerOptions` – options of the source container
+- **payload** : `any` – the payload returned by [`get-child-payload`](#get-child-payload)
 
-#### Returns
+Returns:
 
-- **boolean** : **true / false**
+- `boolean`
 
-### `get-ghost-parent()`
+### `get-ghost-parent`
 
-The function to be called to get the element that the dragged ghost will be appended. Default parent element is the container itself.
-The ghost element is positioned as 'fixed' and appended to given parent element. 
-But if any anchestor of container has a transform property, ghost element will be positioned relative to that element which breaks the calculations. Thats why if you have any transformed parent element of Containers you should set this property so that it returns any element that has not transformed parent element.
-```jsx
+Called to get the element the dragged ghost is appended to. By default this is the container itself.
+
+The ghost element is positioned `fixed` and appended to the given parent. If any ancestor of the container has a `transform`, the ghost is positioned relative to *that* element, which breaks the calculations – so if you have a transformed ancestor, use this to return an element that does not.
+
+```html
 <Container :get-ghost-parent="getGhostParent">
 ```
-```ts
-getGhostParent() {
-  // i.e return document.body;
+
+```js
+function getGhostParent () {
+  return document.body
 }
 ```
 
-#### Returns
+Returns:
 
-- **Element** : **Any DOM element that the ghost will be appended in**
+- `HTMLElement` – the element the ghost will be appended to
 
 ---
 
 ## Events
 
-Events may call user-defined handlers at particular points in the drag-and-drop lifecycle.
+Events are emitted in kebab-case, and are listened to with `@`:
 
-### `@drag-start`
+| Event | Parameter | Description |
+| - | :-: | - |
+| `@drag-start` | `DragStartParams` | Emitted by all containers when a drag starts. |
+| `@drag-end` | `DragEndParams` | Emitted by all containers when a drag ends. Emitted before `@drop`. |
+| `@drag-enter` | – | Emitted by a container when a dragged item enters its bounds. |
+| `@drag-leave` | – | Emitted by a container when a dragged item leaves its bounds. |
+| `@drop-ready` | `DropResult` | Emitted by the container being dragged over each time the potential drop index changes – i.e. each time its draggables slide to open a space. |
+| `@drop` | `DropResult` | Emitted by any relevant container once the drop is over (after the drop animation ends). The source container, and any container that could accept the drop, are considered relevant. |
 
-Event to be emitted by all containers on drag start.
+### `@drag-start` / `@drag-end`
 
-```jsx
-<Container @drag-start="onDragStart">
+```html
+<Container @drag-start="onDragStart" @drag-end="onDragEnd">
 ```
-```ts
-onDragStart (dragResult) {
+
+```js
+function onDragStart (dragResult) {
   const { isSource, payload, willAcceptDrop } = dragResult
 }
 ```
 
-#### Parameters
+Parameters:
 
 - **dragResult** : `object`
+  - **isSource** : `boolean` – true if emitted by the container the drag started from
+  - **payload** : `any` – the payload returned by [`get-child-payload`](#get-child-payload); `undefined` if that prop is not set
+  - **willAcceptDrop** : `boolean` – true if the dragged item can be dropped into this container
 
-    - **payload** : `object` : the payload object that is returned by [get-child-payload](#get-child-payload). It will be undefined in case get-child-payload is not set.
-    - **isSource** : `boolean` : true if it is called by the container which drag starts from otherwise false.
-    - **willAcceptDrop** : `boolean` : true if the dragged item can be dropped into the container, otherwise false.
+### `@drag-enter` / `@drag-leave`
 
-### `@drag-end`
-
-The function to be called by all containers on drag end. Called before [drop](#drop) event.
-
-```jsx
-<Container @drag-end="onDragEnd">
+```html
+<Container @drag-enter="onDragEnter" @drag-leave="onDragLeave">
 ```
-```ts
-onDragEnd (dragResult) {
-  const { isSource, payload, willAcceptDrop } = dragResult
+
+```js
+function onDragEnter () {
+  // ...
 }
 ```
 
-#### Parameters
-
-- **dragResult** : `object`
-
-    - **isSource** : `boolean` : true if it is called by the container which drag starts from, otherwise false.
-    - **payload** : `object` : the payload object that is returned by [get-child-payload](#get-child-payload) function. It will be undefined in case get-child-payload is not set.
-    - **willAcceptDrop** : `boolean` : true if the dragged item can be dropped into the container, otherwise false.
-
-### `@drag-enter`
-
-The event to be emitted by the relevant container whenever a dragged item enters its boundaries while dragging.
-
-```jsx
-<Container @drag-enter="onDragEnter">
-```
-```ts
-onDragEnter () {
-  ...
-}
-```
-
-### `@drag-leave`
-
-The event to be emitted by the relevant container whenever a dragged item leaves its boundaries while dragging.
-
-```jsx
-<Container @drag-leave="onDragLeave">
-```
-```ts
-onDragLeave () {
-  ...
-}
-```
+No parameters are passed.
 
 ### `@drop-ready`
 
-The function to be called by the container which is being drag over, when the index of possible drop position changed in container. Basically it is called each time the draggables in a container slides for opening a space for dragged item. **dropResult** is the only parameter passed to the function which contains the following properties.
-
-```jsx
+```html
 <Container @drop-ready="onDropReady">
 ```
+
 ```js
-onDropReady(dropResult) {
-  const { removedIndex, addedIndex, payload, element } = dropResult;
-  ...
+function onDropReady (dropResult) {
+  const { removedIndex, addedIndex, payload, element } = dropResult
 }
 ```
-#### Parameters
+
+Parameters:
+
 - **dropResult** : `object`
-	- **removedIndex** : `number` : index of the removed children. Will be `null` if no item is removed. 
-	- **addedIndex** : `number` : index to add droppped item. Will be `null` if no item is added. 
-	- **payload** : `object` : the payload object retrieved by calling *getChildPayload* function.
-	- **element** : `DOMElement` : the DOM element that is moved 
+  - **removedIndex** : `number | null` – index of the removed child; `null` if no item is removed
+  - **addedIndex** : `number | null` – index the dropped item would be added at; `null` if no item is added
+  - **payload** : `any` – the payload returned by [`get-child-payload`](#get-child-payload)
+  - **element** : `HTMLElement | undefined` – the DOM element being moved
 
 ### `@drop`
 
-The event to be emitted by any relevant container when drop is over. (After drop animation ends). Source container and any container that could accept drop is considered relevant.
-
-```jsx
+```html
 <Container @drop="onDrop">
 ```
-```ts
-onDrop (dropResult) {
-  const { removedIndex, addedIndex, payload, element } = dropResult;
-  ...
+
+```js
+function onDrop (dropResult) {
+  const { removedIndex, addedIndex, payload } = dropResult
 }
 ```
 
-#### Parameters
+Parameters:
 
 - **dropResult** : `object`
+  - **removedIndex** : `number | null` – index of the removed child; `null` if no item is removed
+  - **addedIndex** : `number | null` – index to add the dropped item at; `null` if no item is added
+  - **payload** : `any` – the payload returned by [`get-child-payload`](#get-child-payload)
 
-	- **removedIndex** : `number` : index of the removed child. Will be `null` if no item is removed. 
-	- **addedIndex** : `number` : index to add dropped item. Will be `null` if no item is added. 
-	- **payload** : `object` : the payload object retrieved by calling [get-child-payload](#get-child-payload) function.
-	- **droppedElement** : `DOMElement` : the DOM element that is moved 
+Nothing is moved in the DOM for you – Vue owns the children, so it is your `@drop` handler's job to update the backing array (see [Usage](#usage)).
+
+---
 
 ## API: Draggable
 
-Wrapper component for Container's children. Every child element should be wrapped with **Draggable** component.
+Wrapper component for a Container's children. Every child element should be wrapped in a **Draggable**.
 
-## Properties
+### Props
+
+| Prop | Type | Default | Description |
+| - | :-: | :-: | - |
+| `:tag` | `string \| TagObject` | `div` | The tag name, or tag description, for the root element. |
 
 ### `tag`
 
-Tag name or the node definition to render the root element of the Draggable.
-Default value is 'div'.
+Works exactly as it does on [Container](#tag), and takes the same flat `props` object:
 
-```jsx
-:tag="{value: 'tr', props: {class: 'my-table-row'}}"
-```
-```jsx
-tag="tr"
+```html
+<Draggable tag="tr">
 ```
 
-#### possible values
-- string : The tag name of the root element to be created
-- object : Node definition
-  - value: string : tag name
-  - props: data object to define element properties. see [https://vuejs.org/v2/guide/render-function.html#The-Data-Object-In-Depth](https://vuejs.org/v2/guide/render-function.html#The-Data-Object-In-Depth)
+```html
+<Draggable :tag="{ value: 'tr', props: { class: 'my-table-row' } }">
+```
+
+The library's own wrapper class is merged into whatever `class` you provide, so you can safely set one.
+
+A table, for example:
+
+```vue
+<template>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <Container tag="tbody" @drop="onDrop">
+      <Draggable v-for="item in items" :key="item.id" tag="tr">
+        <td>{{ item.data }}</td>
+      </Draggable>
+    </Container>
+  </table>
+</template>
+```
+
+---
+
+## TypeScript
+
+The package re-exports the core library's types, so you can import them from here directly:
+
+```ts
+import type {
+  ContainerOptions,
+  DragEndParams,
+  DragStartParams,
+  DropPlaceholderOptions,
+  DropResult,
+  SmoothDnD,
+} from '@likelylogic/vue-smooth-dnd'
+```
+
+Plus the types for the `tag` prop:
+
+```ts
+import type { TagObject, TagProp, TagValue } from '@likelylogic/vue-smooth-dnd'
+```
+
+---
+
+## Migrating from vue-smooth-dnd 0.8.x
+
+| | 0.8.x | This package |
+| - | - | - |
+| Package | `vue-smooth-dnd` | `@likelylogic/vue-smooth-dnd` |
+| Vue | 2 | 3 |
+| `tag` object form | `{ value, props }` where `props` is Vue 2's nested data object | `{ value, props }` where `props` is a **flat** Vue 3 props object |
+
+Everything else – the component names, the props, the event names – is unchanged, so in most cases the migration is the import path plus any `tag` objects you have written.

@@ -1,9 +1,17 @@
+// Vite replacement for the old webpack `require('../pages/' + name + '.vue')`.
+// Eager so `page()` can hand the router a component rather than a loader.
+const modules = import.meta.glob('../pages/*.vue', { eager: true })
+
 function section (title, pages) {
-  return { title, pages };
+  return { title, pages }
 }
 
 function page (name, title) {
-  return { name, title, component: require(`../pages/${name}.vue`).default };
+  const module = modules[`../pages/${name}.vue`]
+  if (!module) {
+    throw new Error(`Unknown demo page "${name}"`)
+  }
+  return { name, title, component: module.default }
 }
 
 export default [
@@ -32,4 +40,4 @@ export default [
   section('Interaction', [
     page('events', 'Callbacks and Events')
   ])
-];
+]

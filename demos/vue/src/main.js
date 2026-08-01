@@ -1,6 +1,4 @@
-import Vue from 'vue'
-
-import './utils/polyfills'
+import { createApp } from 'vue'
 
 import './assets/layout.css'
 import './assets/header.css'
@@ -11,12 +9,9 @@ import './assets/form.css'
 import router from './config/router'
 import Demo from './index.vue'
 
-Vue.config.productionTip = false
+const app = createApp(Demo)
 
-/* eslint-disable no-new */
-window.app = new Vue({
-  el: '#app',
-  router,
-  components: { Demo },
-  template: '<Demo/>'
-})
+app.use(router)
+
+// exposed for poking at from the console
+window.app = app.mount('#app')

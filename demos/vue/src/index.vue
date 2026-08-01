@@ -19,10 +19,12 @@
             <h4>{{ section.title }}</h4>
             <ul>
               <router-link v-for="page in section.pages"
-                :key="page.title"
-                tag="li"
-                :to="page.name"
-              >{{ page.title }}
+                :key="page.name"
+                :to="`/${page.name}`"
+                custom
+                v-slot="{ navigate, isActive }"
+              >
+                <li :class="{ 'router-link-active': isActive }" @click="navigate">{{ page.title }}</li>
               </router-link>
             </ul>
           </div>
@@ -32,7 +34,7 @@
 
     <div class="content">
       <div class="header" :class="openClass">
-        {{ $router.currentRoute.meta.title }}
+        {{ $route.meta.title }}
         <div class="source-code" @click="openCode()">
           <img
             src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZml0PSIiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiIGZvY3VzYWJsZT0iZmFsc2UiPgogICAgPHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgyNHYyNEgwVjB6Ij48L3BhdGg+CiAgICA8cGF0aCBkPSJNOS40IDE2LjZMNC44IDEybDQuNi00LjZMOCA2bC02IDYgNiA2IDEuNC0xLjR6bTUuMiAwbDQuNi00LjYtNC42LTQuNkwxNiA2bDYgNi02IDYtMS40LTEuNHoiIGZpbGw9IiNGRkYiPjwvcGF0aD4KPC9zdmc+Cg=="
@@ -53,26 +55,32 @@ import pages from './config/navigation'
 
 export default {
   name: 'Demo',
-  data: function () {
+
+  data () {
     return {
       pages,
       isNavOpen: true
-    }
-  },
-  methods: {
-    toggleNav: function () {
-      this.isNavOpen = !this.isNavOpen
-    },
-    openCode () {
-      const name = this.$router.currentRoute.name
-      const url = `https://github.com/kutlugsahin/vue-smooth-dnd/tree/master/demo/src/pages/${name}.vue`
-      window.open(url, '_blank')
     }
   },
 
   computed: {
     openClass () {
       return this.isNavOpen ? 'open' : 'closed'
+    }
+  },
+
+  methods: {
+    toggleNav () {
+      this.isNavOpen = !this.isNavOpen
+    },
+
+    openCode () {
+      const name = this.$route.name
+      if (!name) {
+        return
+      }
+      const url = `https://github.com/likelylogic/smooth-dnd/tree/master/demos/vue/src/pages/${name}.vue`
+      window.open(url, '_blank')
     }
   }
 }

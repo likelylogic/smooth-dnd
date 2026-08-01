@@ -1,22 +1,17 @@
 # Vue Smooth DnD Demo
 
-View the demo:
+A Vue 3 + Vite demo for `@likelylogic/vue-smooth-dnd`.
 
-- [kutlugsahin.github.io/vue-smooth-dnd](https://kutlugsahin.github.io/vue-smooth-dnd)
+Run the demo from the monorepo root:
 
-View and edit the demo on Code Sandbox:
+```bash
+pnpm install
+pnpm build      # build the workspace packages the demo consumes
+pnpm dev:vue
+```
 
-- [codesandbox.io/s/github/kutlugsahin/vue-smooth-dnd/tree/master/demo](https://codesandbox.io/s/github/kutlugsahin/vue-smooth-dnd/tree/master/demo)
+View at [http://localhost:5174](http://localhost:5174)
 
 View the source code on GitHub:
 
-- [github.com/kutlugsahin/vue-smooth-dnd/tree/master/demo](https://github.com/kutlugsahin/vue-smooth-dnd/tree/master/demo)
-
-Run the demo locally:
-
-```bash
-npm install
-npm run dev
-```
-
-View at [http://localhost:8080](http://localhost:8080)
+- [github.com/likelylogic/smooth-dnd/tree/master/demos/vue](https://github.com/likelylogic/smooth-dnd/tree/master/demos/vue)

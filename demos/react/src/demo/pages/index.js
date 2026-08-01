@@ -1,23 +1,23 @@
-import * as simples from './simple';
-import SimpleHorizontal from './simple-horizontal';
-import Groups from './groups';
-import Copy from './copy';
-import Horizontal from './horizontal';
-import Nested from './nested';
-import NestedGroup from './nested-group';
-import VanillaNested from './vanilla-nested';
-import Height from './height';
-import Form from './form';
-import Cards from './cards';
-import LockAxis from './lock-axis';
-import DragDelay from './drag-delay';
-import DragHandle from './drag-handle';
-import DragClass from './drag-class';
-import TransitionDuration from './transition-duration';
-import DropZone from './drop-zone';
-import Chess from './chess';
-import ScrollBoth from './scroll-both';
-import DynamicContainers from './dynamic-containers';
+import * as simples from './simple.jsx';
+import SimpleHorizontal from './simple-horizontal.jsx';
+import Groups from './groups.jsx';
+import Copy from './copy.jsx';
+import Horizontal from './horizontal.jsx';
+import Nested from './nested.jsx';
+import NestedGroup from './nested-group.jsx';
+import VanillaNested from './vanilla-nested.jsx';
+import Height from './height.jsx';
+import Form from './form.jsx';
+import Cards from './cards.jsx';
+import LockAxis from './lock-axis.jsx';
+import DragDelay from './drag-delay.jsx';
+import DragHandle from './drag-handle.jsx';
+import DragClass from './drag-class.jsx';
+import TransitionDuration from './transition-duration.jsx';
+import DropZone from './drop-zone.jsx';
+import Chess from './chess.jsx';
+import ScrollBoth from './scroll-both.jsx';
+import DynamicContainers from './dynamic-containers.jsx';
 
 
 const getUrl = (pagename) => {

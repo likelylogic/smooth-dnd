@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { Container, Draggable } from 'vue-smooth-dnd'
+import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
 import { applyDrag } from '../utils/helpers'
 
 const formInitial = [

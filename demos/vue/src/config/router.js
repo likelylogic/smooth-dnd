@@ -1,11 +1,10 @@
-import Vue from 'vue';
-import VueRouter from 'vue-router';
-import navigation from './navigation';
+import { createRouter, createWebHistory } from 'vue-router'
+import navigation from './navigation'
 
 // convert navigation to routes
 const routes = navigation.reduce((routes, section) => {
   section.pages.forEach(page => {
-    const name = page.name;
+    const name = page.name
     routes.push({
       name,
       path: `/${name}`,
@@ -13,19 +12,19 @@ const routes = navigation.reduce((routes, section) => {
       meta: {
         title: page.title
       }
-    });
-  });
-  return routes;
-}, []);
+    })
+  })
+  return routes
+}, [])
 
 // set up router
-Vue.use(VueRouter);
-export default new VueRouter({
+export default createRouter({
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
-      redirect: 'cards'
+      redirect: '/cards'
     },
     ...routes
   ]
-});
+})

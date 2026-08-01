@@ -1,17 +1,27 @@
 {
-  "name": "react-smooth-dnd",
-  "version": "0.11.1",
-  "description": "Drag and Drop library",
-  "main": "./dist/index.js",
-  "scripts": {
-    "bundle": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
-    "tsc": "tsc --emitDeclarationOnly --outDir dist",
-    "build": "npm run tsc && npm run bundle"
-  },
+  "name": "@likelylogic/react-smooth-dnd",
+  "version": "1.0.0",
+  "description": "React wrappers for smooth-dnd",
+  "type": "module",
+  "main": "./dist/react-smooth-dnd.umd.cjs",
+  "module": "./dist/react-smooth-dnd.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/react-smooth-dnd.js",
+      "require": "./dist/react-smooth-dnd.umd.cjs"
+    }
+  },
   "files": [
     "dist"
   ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
   "keywords": [
     "react",
     "sortable",
@@ -20,35 +30,41 @@
     "drag",
     "drop",
     "draggable",
-    "dnd"
+    "dnd",
+    "smooth-dnd"
   ],
   "author": {
     "name": "Kutlu Sahin",
     "email": "kutlugsahin@gmail.com"
   },
-  "license": "ISC",
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
+  ],
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kutlugsahin/react-smooth-dnd.git"
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/react-smooth-dnd"
   },
-  "devDependencies": {
-    "@babel/core": "7.3.4",
-    "@babel/plugin-proposal-class-properties": "^7.3.4",
-    "@babel/preset-env": "7.3.4",
-    "@babel/preset-react": "^7.0.0",
-    "@babel/preset-typescript": "7.3.3",
-    "rollup": "1.4.0",
-    "rollup-plugin-babel": "4.3.2",
-    "rollup-plugin-commonjs": "^9.2.1",
-    "rollup-plugin-uglify": "6.0.2",
-    "typescript": "3.3.3333",
-    "@types/react": "^16.3.0"
-  },
-  "peerDependencies": {
-    "react": "^16.3.0"
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "smooth-dnd": "0.12.1",
-    "prop-types":">=15.6.0"
+    "@likelylogic/smooth-dnd": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "vite-plugin-dts": "^5.0.3"
   }
 }

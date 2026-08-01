@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import { Container, Draggable } from 'vue-smooth-dnd'
+import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
 import { applyDrag, generateItems } from '../utils/helpers'
 
 export default {

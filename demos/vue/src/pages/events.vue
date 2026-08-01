@@ -43,7 +43,7 @@
         <button @click="addColumn()">Add Column</button>
       </div>
       <div>
-        <label v-for="(key, name) in logs" :key="name">
+        <label v-for="(enabled, name) in logs" :key="name">
           <input type="checkbox" v-model="logs[name]"> {{ name }}
         </label>
         <hr>
@@ -57,9 +57,8 @@
 </template>
 
 <script>
-import { Container, Draggable } from 'vue-smooth-dnd'
+import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
 import { applyDrag, generateItems } from '../utils/helpers'
-import Vue from 'vue'
 
 let i = 0
 
@@ -144,8 +143,8 @@ export default {
     },
 
     onDrop (groupIndex, dropResult) {
-      let result = applyDrag(this.groups[groupIndex], dropResult)
-      Vue.set(this.groups, groupIndex, result)
+      // Vue 3 proxies arrays, so plain index assignment is reactive (no Vue.set)
+      this.groups[groupIndex] = applyDrag(this.groups[groupIndex], dropResult)
       this.log('drop', dropResult)
     },
 
