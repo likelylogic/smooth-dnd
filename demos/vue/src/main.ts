@@ -1,17 +1,11 @@
 import { createApp } from 'vue'
 
-import './assets/layout.css'
-import './assets/header.css'
-import './assets/nav.css'
-import './assets/demos.css'
-import './assets/form.css'
+// every stylesheet the demos need, shared with the React demo
+import '@demo/shared/styles'
 
-import router from './config/router'
-import Demo from './index.vue'
+import router from './router'
+import App from './app/App.vue'
 
-const app = createApp(Demo)
-
-app.use(router)
-
-// exposed for poking at from the console
-window.app = app.mount('#app')
+createApp(App)
+  .use(router)
+  .mount('#app')
