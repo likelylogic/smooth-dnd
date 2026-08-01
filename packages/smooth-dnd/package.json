@@ -1,17 +1,27 @@
 {
-  "name": "smooth-dnd",
+  "name": "@likelylogic/smooth-dnd",
   "version": "0.12.1",
-  "description": "Drag and Drop library",
-  "main": "./dist/index.js",
-  "scripts": {
-    "bundle": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
-    "tsc": "tsc --emitDeclarationOnly --outDir dist",
-    "build": "npm run tsc && npm run bundle"
-  },
+  "description": "Drag and drop library for javascript",
+  "type": "module",
+  "main": "./dist/smooth-dnd.umd.cjs",
+  "module": "./dist/smooth-dnd.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/smooth-dnd.js",
+      "require": "./dist/smooth-dnd.umd.cjs"
+    }
+  },
   "files": [
     "dist"
   ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
   "keywords": [
     "sortable",
     "drag and drop",
@@ -25,19 +35,22 @@
     "name": "Kutlu Sahin",
     "email": "kutlugsahin@gmail.com"
   },
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kutlugsahin/smooth-dnd.git"
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/smooth-dnd"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
-    "@babel/core": "7.3.4",
-    "@babel/preset-env": "7.3.4",
-    "@babel/preset-typescript": "7.3.3",
-    "rollup": "1.4.0",
-    "rollup-plugin-babel": "4.3.2",
-    "rollup-plugin-commonjs": "^9.2.1",
-    "rollup-plugin-uglify": "6.0.2",
-    "typescript": "3.3.3333"
+    "vite-plugin-dts": "^5.0.3"
   }
 }

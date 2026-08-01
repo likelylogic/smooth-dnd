@@ -1,22 +1,31 @@
 {
-  "name": "vue-smooth-dnd",
-  "version": "0.8.1",
-  "description": "Vue wrappers for smooth-dnd",
-  "author": "Kutlu Sahin",
-  "homepage": "https://kutlugsahin.github.io/vue-smooth-dnd/",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kutlugsahin/vue-smooth-dnd"
-  },
-  "contributors": [
-    {
-      "name": "Dave Stewart",
-      "url": "https://github.com/davestewart"
+  "name": "@likelylogic/vue-smooth-dnd",
+  "version": "1.0.0",
+  "description": "Vue 3 wrappers for smooth-dnd",
+  "type": "module",
+  "main": "./dist/vue-smooth-dnd.umd.cjs",
+  "module": "./dist/vue-smooth-dnd.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/vue-smooth-dnd.js",
+      "require": "./dist/vue-smooth-dnd.umd.cjs"
     }
+  },
+  "files": [
+    "dist"
   ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
+  },
   "keywords": [
     "Vue",
     "Vue.js",
+    "vue3",
     "sortable",
     "drag and drop",
     "drag&drop",
@@ -26,56 +35,33 @@
     "dnd",
     "smooth-dnd"
   ],
-  "main": "dist/vue-smooth-dnd.js",
-  "module": "dist/vue-smooth-dnd.esm.js",
-  "jsnext:main": "dist/vue-smooth-dnd.esm.js",
-  "files": [
-    "dist/*"
+  "author": "Kutlu Sahin",
+  "contributors": [
+    {
+      "name": "Dave Stewart",
+      "url": "https://github.com/davestewart"
+    }
   ],
-  "scripts": {
-    "dev": "rollup -c build/rollup.js -w",
-    "build": "rollup -c build/rollup.js",
-    "demo": "cd demo && npm run dev",
-    "lint": "./node_modules/.bin/eslint src/*",
-    "test": "jest --watchAll --verbose",
-    "unit": "jest --config jest.config.js --coverage"
-  },
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/kutlugsahin/vue-smooth-dnd/issues"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/likelylogic/smooth-dnd.git",
+    "directory": "packages/vue-smooth-dnd"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
-    "smooth-dnd": "0.12.1"
+    "@likelylogic/smooth-dnd": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
   },
   "devDependencies": {
-    "babel-jest": "^23.4.0",
-    "cross-env": "^5.2.0",
-    "eslint": "^5.6.0",
-    "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-node": "^7.0.1",
-    "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "jest": "^23.4.1",
-    "rollup": "^0.67.3",
-    "rollup-plugin-buble": "^0.19.1",
-    "rollup-plugin-commonjs": "^8.4.1",
-    "rollup-plugin-license": "^0.6.0",
-    "rollup-plugin-typescript2": "0.14.0",
-    "rollup-plugin-uglify": "^3.0.0"
-  },
-  "jest": {
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ]
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
+    "vite-plugin-dts": "^5.0.3",
+    "vue": "^3.5.40",
+    "vue-tsc": "^3.3.9"
   }
 }
