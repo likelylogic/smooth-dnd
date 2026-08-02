@@ -336,6 +336,15 @@ function onMouseDown(event: MouseEvent & TouchEvent) {
     if (grabbedElement) {
       const containerElement = Utils.getParent(grabbedElement, '.' + constants.containerClass);
       const container = containers.filter(p => p.element === containerElement)[0];
+
+      // A wrapper can outlive its container — disposed but still mounted, or hand-written markup
+      // that happens to carry the class. Without this guard the lookup below throws on every
+      // subsequent mousedown in that subtree.
+      if (!container) {
+        grabbedElement = null;
+        return;
+      }
+
       const dragHandleSelector = container.getOptions().dragHandleSelector;
       const nonDragAreaSelector = container.getOptions().nonDragAreaSelector;
 
@@ -503,11 +512,16 @@ function getPointerEvent(e: TouchEvent & MouseEvent): MouseEvent & TouchEvent {
   return e.touches ? (e.touches[0] as any) : (e as any);
 }
 
-function handleDragImmediate(draggableInfo: DraggableInfo, dragListeningContainers: IContainer[]) {
+// Exported for tests. Not part of the package's public API — index.ts ships the default export
+// below and does not re-export from this module.
+export function handleDragImmediate(draggableInfo: DraggableInfo, dragListeningContainers: IContainer[]) {
   let containerBoxChanged = false;
   dragListeningContainers.forEach((p: IContainer) => {
-    const dragResult = p.handleDrag(draggableInfo)!;
-    containerBoxChanged = !!dragResult.containerBoxChanged || false;
+    const dragResult = p.handleDrag(draggableInfo);
+    if (!dragResult) return;
+    // Accumulate: assigning here would let a later container clear a change reported by an
+    // earlier one, skipping the re-measure and leaving every container on stale rects.
+    containerBoxChanged = containerBoxChanged || !!dragResult.containerBoxChanged;
     dragResult.containerBoxChanged = false;
   });
 
@@ -666,7 +680,14 @@ function registerContainer(container: IContainer) {
 }
 
 function unregisterContainer(container: IContainer) {
-  containers.splice(containers.indexOf(container), 1);
+  const index = containers.indexOf(container);
+
+  // splice(-1, 1) would remove the *last* registered container — an unrelated, live one.
+  if (index === -1) {
+    return;
+  }
+
+  containers.splice(index, 1);
 
   if (isDragging && draggableInfo) {
     if (draggableInfo.container === container) {
