@@ -156,3 +156,86 @@ export function cleanupDom () {
 export function setOverflow (element: HTMLElement, value: string) {
   element.style.overflow = value
 }
+
+// ---------------------------------------------------------------------------------------------
+// Drag simulation
+// ---------------------------------------------------------------------------------------------
+
+/** The node a real pointer would hit — the innermost child of a wrapped draggable. */
+export function itemAt (container: HTMLElement, index: number) {
+  const wrapper = container.children[index] as HTMLElement
+  return (wrapper.firstElementChild ?? wrapper) as HTMLElement
+}
+
+export function ghostElement () {
+  return document.querySelector('.smooth-dnd-ghost') as HTMLElement | null
+}
+
+/** Let queued rAF callbacks and microtasks run. */
+export async function flushFrames (count = 2) {
+  for (let i = 0; i < count; i++) {
+    await new Promise(resolve => requestAnimationFrame(() => resolve(null)))
+  }
+}
+
+function pointerEvent (type: string, x: number, y: number) {
+  return new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+}
+
+export interface DragHandle {
+  /** Move the pointer, letting the engine process the frame. */
+  moveTo: (x: number, y: number) => Promise<void>
+  /** Release, then settle the drop animation by firing `transitionend` on the ghost. */
+  drop: () => Promise<void>
+  /** Release without settling — leaves the drop animation pending. */
+  release: () => void
+  /** Settle a pending drop animation. */
+  settle: () => Promise<void>
+}
+
+/**
+ * Drive a full drag through the real event path: mousedown, the move that crosses the drag
+ * threshold, then further moves.
+ *
+ * `document.elementFromPoint` is stubbed for the duration, since jsdom always returns null and the
+ * engine uses it to decide which container the pointer is over.
+ */
+export async function startDrag (
+  container: HTMLElement,
+  index: number,
+  hitTarget: () => Element | null = () => container,
+): Promise<DragHandle> {
+  const original = document.elementFromPoint
+  document.elementFromPoint = () => hitTarget() as Element
+
+  const source = itemAt(container, index)
+  source.dispatchEvent(pointerEvent('mousedown', 0, 0))
+  // the first move past the 1px threshold promotes the press into a drag
+  document.dispatchEvent(pointerEvent('mousemove', 0, 10))
+  await flushFrames()
+
+  async function moveTo (x: number, y: number) {
+    document.dispatchEvent(pointerEvent('mousemove', x, y))
+    await flushFrames()
+  }
+
+  function release () {
+    document.dispatchEvent(pointerEvent('mouseup', 0, 0))
+  }
+
+  async function settle () {
+    const ghost = ghostElement()
+    if (ghost) {
+      ghost.dispatchEvent(new Event('transitionend', { bubbles: false }))
+    }
+    await flushFrames()
+    document.elementFromPoint = original
+  }
+
+  async function drop () {
+    release()
+    await settle()
+  }
+
+  return { moveTo, drop, release, settle }
+}
