@@ -11,6 +11,21 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.17.1
+
+### Fixed
+
+- **The list closed up when aiming at an item, losing your place.** Crossing from a target *between*
+  items to one *onto* an item removed the gap, so everything below it jumped up by an item's height
+  — exactly when you were trying to aim.
+
+  The gap now stays where it is while an `into` target is active; only the highlight changes. It
+  still slides as the insertion point moves, which is the ordinary sortable behaviour. So an `at`
+  and an `into` resolving to the same index leave the siblings in identical positions, and the
+  layout only ever moves when the index does.
+
+---
+
 ## 0.17.0
 
 ### Added

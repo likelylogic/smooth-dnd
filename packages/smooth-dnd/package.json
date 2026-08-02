@@ -1,6 +1,6 @@
 {
   "name": "@likelylogic/smooth-dnd",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Drag and drop library for javascript",
   "type": "module",
   "main": "./dist/smooth-dnd.umd.cjs",

@@ -78,20 +78,43 @@ describe('dropOnItems', () => {
     expect(log.seen.some(r => r.dropTarget?.kind === 'at')).toBe(true)
   })
 
-  it('never opens a gap for an into target', async () => {
-    const element = makeContainer(4, LAYOUT)
-    mount(element, { dropOnItems: true, dropFeedback: 'indicator', getChildPayload: (i: number) => ({ id: i }) })
+  it('holds the layout still when crossing between "between" and "onto"', async () => {
+    // Closing the gap for an into target would shift everything below it by an item's height each
+    // time the pointer crossed the boundary — losing your place exactly when you are aiming.
+    const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+    const log = readyLog()
+    mount(element, { dropOnItems: true, getChildPayload: (i: number) => ({ id: i }), onDropReady: log.onDropReady },
+      { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
 
-    const drag = await startDrag(element, 0)
-    await drag.moveTo(0, 100)
-
-    // there is nothing to make room for — the item goes inside another, not between two
-    const transforms = Array.from(element.children)
-      .slice(1)
+    const layoutOf = () => Array.from(element.children)
       .map(child => (child as HTMLElement).style.transform)
-    expect(transforms.every(t => t === '')).toBe(true)
+      .join('|')
 
+    const drag = await startDrag(element, 2)
+    const byTarget = new Map<string, Set<string>>()
+    for (let y = -60; y <= 120; y += 10) {
+      await drag.moveTo(0, y)
+      const target = log.seen[log.seen.length - 1]?.dropTarget
+      if (target) {
+        const key = `${target.kind}${target.index}`
+        if (!byTarget.has(key)) {
+          byTarget.set(key, new Set())
+        }
+        byTarget.get(key)!.add(layoutOf())
+      }
+    }
     await drag.drop()
+
+    // an `at` and an `into` on the same index must leave the siblings in the same place
+    const pairs = [...byTarget.keys()]
+      .filter(k => k.startsWith('into'))
+      .map(k => [k, `at${k.slice(4)}`] as const)
+      .filter(([, at]) => byTarget.has(at))
+
+    expect(pairs.length).toBeGreaterThan(0)
+    for (const [into, at] of pairs) {
+      expect([...byTarget.get(into)!]).toEqual([...byTarget.get(at)!])
+    }
   })
 
   it('outlines the target item rather than a gap', async () => {
