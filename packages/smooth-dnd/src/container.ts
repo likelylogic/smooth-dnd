@@ -310,32 +310,18 @@ function handleTargetContainer({ element }: ContainerProps) {
 // Exported for tests — see note on findDraggebleAtPos.
 export function getDragInsertionIndex(params: ContainerProps) {
   const { draggables, layout, getOptions } = params;
-  const resting = restingBoundsFor(params);
-  const findLive = findDraggebleAtPos({ layout });
+  const findDraggable = findDraggebleAtPos({ layout });
 
-  return ({ dragResult: { shadowBeginEnd, pos, removedIndex, elementSize } }: { dragResult: DragResult }) => {
-    // Once `into` targets are in play, resolve in the frame they are resolved in — where the items
-    // rest — or the two disagree every time a gap opens or shuts and the reported index jumps.
+  return ({ dragResult: { shadowBeginEnd, pos } }: { dragResult: DragResult }) => {
+    // With dropOnItems on, resolveDropOnItem owns the insertion index: it reads the live layout
+    // and only moves the index when the pointer reaches an item's far edge. Returning null leaves
+    // the previous index in place for the resolver to overwrite.
     if (getOptions().dropOnItems) {
-      const findResting = findDraggebleAtPos(
-        { layout },
-        (_element, index) => resting(index, removedIndex, elementSize),
-      );
-
-      // Hold the current index while the pointer is still inside the band. That is the whole of
-      // the hysteresis; the index itself comes straight from which half of an item the pointer is
-      // in. The live path below instead nudges by ±1 depending on which way the band was left,
-      // which overshoots here: the resting frame has a boundary at every item edge, so "past the
-      // band, therefore after the item under the pointer" lands a whole slot too far.
-      if (shadowBeginEnd && pos >= shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment && pos <= shadowBeginEnd.end) {
-        return null;
-      }
-
-      return findResting(draggables, pos, true);
+      return null;
     }
 
     if (!shadowBeginEnd) {
-      const index = findLive(draggables, pos, true);
+      const index = findDraggable(draggables, pos, true);
       return index !== null ? index : draggables.length;
     } else {
       if (shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment <= pos && shadowBeginEnd.end >= pos) {
@@ -345,9 +331,9 @@ export function getDragInsertionIndex(params: ContainerProps) {
     }
 
     if (pos < shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment) {
-      return findLive(draggables, pos);
+      return findDraggable(draggables, pos);
     } else if (pos > shadowBeginEnd.end) {
-      return findLive(draggables, pos)! + 1;
+      return findDraggable(draggables, pos)! + 1;
     } else {
       return draggables.length;
     }
@@ -472,9 +458,12 @@ function resetShadowAdjustment() {
 
 function handleInsertionSizeChange({ element, draggables, layout, getOptions }: ContainerProps) {
   let strectherElement: HTMLElement | null = null;
-  return function ({ dragResult: { addedIndex, removedIndex, elementSize } }: DragInfo) {
+  return function ({ dragResult: { addedIndex, removedIndex, elementSize, gapIndex } }: DragInfo) {
+    // The stretcher tracks where the list is parted, which during a drop-onto hold differs from
+    // the insertion index — see gapIndex.
+    const partAt = gapIndex === undefined ? addedIndex : gapIndex;
     if (removedIndex === null) {
-      if (addedIndex !== null) {
+      if (partAt !== null) {
         if (!strectherElement) {
           const containerBeginEnd = layout.getBeginEndOfContainer();
           containerBeginEnd.end = containerBeginEnd.begin + layout.getSize(element);
@@ -565,13 +554,13 @@ export function getShadowBeginEnd(params: ContainerProps) {
     // Two distinct questions, and conflating them is what produced the last three bugs here.
     //
     // `restingFrame` — should the *hysteresis band* be measured where the items rest? Yes whenever
-    // no gap is opening (nothing to straddle) and whenever `into` targets are in play (they are
-    // resolved in that frame, so the band has to agree).
+    // no gap is opening (nothing to straddle). dropOnItems no longer weighs in: its resolver owns
+    // targeting from the live layout and ignores this band entirely.
     //
     // `boundaryArea` — should the reported *drop area* collapse to a line? Yes only when nothing is
     // opening. Under `gap` the area describes the space being made, and the placeholder fills it.
     const opensGap = (getOptions().dropFeedback || 'gap') === 'gap';
-    const restingFrame = !opensGap || !!getOptions().dropOnItems;
+    const restingFrame = !opensGap;
     const boundaryArea = !opensGap;
     const stationary = restingFrame;
     const boundsOf = (index: number) => (
@@ -727,62 +716,98 @@ function fireDragEnterLeaveEvents({ getOptions }: ContainerProps) {
 }
 
 /**
- * Decide whether the pointer is over the *middle* of an item — a drop onto it — rather than near a
- * boundary between items.
+ * Resolve what the pointer is aimed at when drops onto items are enabled: an insertion point
+ * (`at`) or an item itself (`into`).
  *
- * This is the one-dimensional implementation of target resolution. It is isolated here rather than
- * folded into the insertion search because the search itself is what has to change for wrapping and
- * grid layouts; the banding above it does not.
+ * Everything is measured against the **live layout** — the positions the user can actually see —
+ * and an item is only displaced when the pointer reaches its *far* quarter. That combination is
+ * what lets `into` coexist with an opening gap, and both halves are load-bearing:
  *
- * An `into` target clears `addedIndex`, so nothing downstream opens a gap. There is nothing to make
- * room for — the item is going inside another one, not between two.
+ * - Resolving against any other frame draws the highlight somewhere the pointer visibly is not.
+ *   (Resting positions were tried: the highlight appeared an item early whenever a gap was open.)
+ * - Displacing at the *near* edge means the item dodges out from under the pointer the moment it
+ *   is touched, so a stable hover region never exists and `into` can never trigger. Displacing at
+ *   the far edge leaves the near quarter re-selecting the current insertion point (a no-op) and
+ *   the middle free for `into` — react-beautiful-dnd's combine mode works the same way.
+ *
+ * While `into` is active the parting is held exactly where it was (`gapIndex`), so the layout
+ * cannot move in response to this decision and feed back into it.
  */
 export function resolveDropOnItem(params: ContainerProps) {
-  const { draggables, getOptions } = params;
-  const resting = restingBoundsFor(params);
+  const { draggables, layout, getOptions } = params;
   /** Fraction of an item at each end that still counts as "between", not "onto". */
   const edgeBand = 0.25;
 
-  return ({ dragResult: { pos, addedIndex, removedIndex, elementSize } }: DragInfo) => {
-    const insertion = () => (
-      addedIndex !== null
-        ? { gapIndex: undefined, dropTarget: { kind: 'at' as const, index: addedIndex } }
-        : { gapIndex: undefined, dropTarget: null }
-    );
+  // Where the list is currently parted — the resolver's only memory, reset per drag because the
+  // drag handler is rebuilt on every drop.
+  let prevPartAt: number | null = null;
 
+  return ({ dragResult: { pos, addedIndex, removedIndex } }: DragInfo) => {
     if (!getOptions().dropOnItems) {
-      return insertion();
+      return addedIndex !== null
+        ? { gapIndex: undefined, dropTarget: { kind: 'at' as const, index: addedIndex } }
+        : { gapIndex: undefined, dropTarget: null };
     }
 
-    if (pos === null || draggables.length === 0) {
-      return { dropTarget: null };
+    if (pos === null) {
+      prevPartAt = null;
+      return { addedIndex: null, gapIndex: undefined, dropTarget: null };
     }
+
+    const at = (index: number) => {
+      prevPartAt = index;
+      return { addedIndex: index, gapIndex: undefined, dropTarget: { kind: 'at' as const, index } };
+    };
+
+    /**
+     * The pointer is between items — in the open gap, the vacated slot, or a margin.
+     * `lo`..`hi` are the raw insertion indices whose boundaries fall inside this space.
+     */
+    const between = (spaceBegin: number, spaceEnd: number, lo: number, hi: number) => {
+      // Inside the current parting: hold it. This is the whole of the `at` hysteresis.
+      if (prevPartAt !== null && prevPartAt >= lo && prevPartAt <= hi) {
+        return at(prevPartAt);
+      }
+      // Both edges of the space are legitimate boundaries — they differ only when the space is the
+      // dragged item's vacated slot — so take the nearer one.
+      return at(pos < (spaceBegin + spaceEnd) / 2 ? lo : hi);
+    };
+
+    let prevEnd = layout.getBeginEndOfContainer().begin;
+    let prevRaw = 0;
 
     for (let index = 0; index < draggables.length; index++) {
-      // The dragged item is not part of the resting layout — it has been lifted out — and in any
-      // case cannot be dropped inside itself.
+      // The dragged item is hidden and its slot closed up; its stale bounds overlap a neighbour's.
       if (index === removedIndex) {
         continue;
       }
 
-      const { begin, end } = resting(index, removedIndex, elementSize);
-      const size = end - begin;
-      if (size <= 0 || pos < begin || pos >= end) {
-        continue;
+      const { begin, end } = layout.getBeginEnd(draggables[index]);
+
+      if (pos < begin) {
+        return between(prevEnd, begin, prevRaw, index);
       }
 
-      const offset = (pos - begin) / size;
-      if (offset > edgeBand && offset < 1 - edgeBand) {
-        // No insertion index — nothing is being made room for — but the siblings stay parted where
-        // they already were. Closing the gap here would shift everything below it by an item's
-        // height every time the pointer crossed the boundary, which loses your place exactly when
-        // you are trying to aim. Only the highlight should change.
-        return { addedIndex: null, gapIndex: index, dropTarget: { kind: 'into' as const, index } };
+      if (pos < end) {
+        // Over the item itself. The edge quarters resolve to the boundaries either side; because
+        // the open gap sits on one side of the item, the quarter facing it re-selects the current
+        // parting (no movement) and only the far quarter displaces the item.
+        const offset = (pos - begin) / (end - begin);
+        if (offset <= edgeBand) {
+          return at(index);
+        }
+        if (offset >= 1 - edgeBand) {
+          return at(index + 1);
+        }
+        // A drop onto the item: hold the parting exactly where it was.
+        return { addedIndex: null, gapIndex: prevPartAt, dropTarget: { kind: 'into' as const, index } };
       }
-      break;
+
+      prevEnd = end;
+      prevRaw = index + 1;
     }
 
-    return insertion();
+    return between(prevEnd, layout.getBeginEndOfContainer().end, prevRaw, draggables.length);
   };
 }
 
@@ -801,7 +826,9 @@ export function computeDropIndicator({ element, draggables, layout, getOptions }
     // An `into` target is reported in every feedback mode, because no mode has a way of showing it
     // otherwise — there is no gap to open, so without bounds the application has nothing to draw.
     if (getOptions().dropFeedback !== 'indicator' && !intoTarget) {
-      return null;
+      // Gap mode draws no `at` indicator, but a stale `into` outline from the previous frame must
+      // still be cleared once the target stops being one.
+      return getOptions().dropOnItems ? { dropIndicator: null } : null;
     }
 
     const rect = layout.getContainerRectangles().rect;

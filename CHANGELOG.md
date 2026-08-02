@@ -11,6 +11,34 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.18.0
+
+### Fixed
+
+- **The drop-onto highlight appeared before the pointer reached the item.** With a gap open, the
+  highlight was offset by up to an item's height from what was on screen.
+
+  Root cause: targets were resolved against *resting* positions — where items would sit with the
+  dragged one removed — while the user aims at *live* positions. The two differ by the gap height.
+  Resolution now reads the live layout, so the highlight lands on the item actually under the
+  pointer.
+
+  Reading the live layout was previously believed unsafe, because the gap follows the pointer and
+  the item being aimed at dodges out from under it. The missing piece — how react-beautiful-dnd's
+  combine mode has always worked — is to move the **displacement threshold to the item's far edge**:
+  the quarter facing the gap re-selects the current insertion point (a no-op), the middle half is
+  the drop-onto region, and only the far quarter displaces the item. There is always a stable
+  region in which to hover, and the layout can never move in response to the decision it feeds.
+
+  A sweep down a six-item list now reports `into 1, at 2, at 3, into 3, at 4, into 4, at 5`, with
+  the sweep up its exact mirror, and every highlight aligned with the item under the pointer.
+
+  Insertion hysteresis is now owned by the same resolver (hold while inside the current parting),
+  and the stretcher follows the held parting during a drop-onto, so cross-container hovers do not
+  collapse the container. Behaviour with `dropOnItems` off is untouched.
+
+---
+
 ## 0.17.1
 
 ### Fixed

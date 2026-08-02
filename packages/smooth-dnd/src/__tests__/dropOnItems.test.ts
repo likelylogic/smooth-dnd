@@ -212,29 +212,87 @@ describe('dropOnItems', () => {
     expect(intoEntries.every(r => r.dropIndicator != null)).toBe(true)
   })
 
-  it('reaches the same targets dragging up as dragging down, under gap feedback', async () => {
-    async function sweep (from: number, to: number, step: number) {
+  it('keeps the highlight on the item actually under the pointer', async () => {
+    // The alignment invariant, and the bug this design replaces: resolving against resting
+    // positions drew the into highlight an item early whenever a gap was open. Every into report
+    // must name the item whose *live* bounds contain the pointer at that moment.
+    async function sweep (ys: number[]) {
       const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
-      const seen: string[] = []
+      // held in an object so TypeScript does not narrow it to null across the callback boundary
+      const state: { current: DropResult['dropTarget'] | null } = { current: null }
       const instance = mount(element, {
         dropOnItems: true,
         getChildPayload: (i: number) => ({ id: i }),
-        onDropReady: (r: DropResult) => seen.push(`${r.dropTarget!.kind}${r.dropTarget!.index}`),
+        onDropReady: (r: DropResult) => { state.current = r.dropTarget ?? null },
+      }, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+
+      const liveTop = (index: number) => {
+        const child = element.children[index] as HTMLElement
+        const match = /translate3d\(0,\s*(-?\d+(?:\.\d+)?)px/.exec(child.style.transform || '')
+        return index * 50 + (match ? parseFloat(match[1]) : 0)
+      }
+
+      const drag = await startDrag(element, 2) // pointer sits 125px above its clientY
+      const misaligned: string[] = []
+      for (const y of ys) {
+        await drag.moveTo(0, y)
+        const pos = y + 125
+        const target = state.current
+        if (target?.kind === 'into') {
+          const top = liveTop(target.index)
+          if (pos < top || pos > top + 50) {
+            misaligned.push(`pos ${pos} highlighted item ${target.index} at ${top}`)
+          }
+        }
+      }
+      await drag.drop()
+      instance.dispose()
+      return misaligned
+    }
+
+    const down = Array.from({ length: 31 }, (_, i) => -60 + i * 6)
+    expect(await sweep(down)).toEqual([])
+    expect(await sweep([...down].reverse())).toEqual([])
+  })
+
+  it('moves through targets monotonically, in both directions', async () => {
+    // With live-position resolution the exact transition points are path-dependent — the same
+    // pointer position over different layouts hits different items, which is correct, because the
+    // user aims at what they see. What must hold is that a sweep never goes backwards.
+    async function sweep (ys: number[]) {
+      const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+      const order: number[] = []
+      const instance = mount(element, {
+        dropOnItems: true,
+        getChildPayload: (i: number) => ({ id: i }),
+        // at k sits at 2k, into k between at k and at k+1 — so 2k+1
+        onDropReady: (r: DropResult) => {
+          const target = r.dropTarget
+          if (target) {
+            order.push(target.kind === 'at' ? target.index * 2 : target.index * 2 + 1)
+          }
+        },
       }, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
 
       const drag = await startDrag(element, 2)
-      for (let y = from; step > 0 ? y <= to : y >= to; y += step) {
+      order.length = 0 // the grab itself resolves a target; the sweep starts here
+      for (const y of ys) {
         await drag.moveTo(0, y)
       }
       await drag.drop()
       instance.dispose()
-      return new Set(seen)
+      return order
     }
 
-    const down = await sweep(-50, 110, 10)
-    const up = await sweep(110, -50, -10)
-    expect([...down].sort()).toEqual([...up].sort())
+    const down = await sweep(Array.from({ length: 31 }, (_, i) => -60 + i * 6))
+    expect(down.length).toBeGreaterThan(3)
+    expect(down).toEqual([...down].sort((a, b) => a - b))
+
+    const up = await sweep(Array.from({ length: 31 }, (_, i) => 120 - i * 6))
+    expect(up.length).toBeGreaterThan(3)
+    expect(up).toEqual([...up].sort((a, b) => b - a))
   })
+
 })
 
 describe('nested self-drop guard', () => {
