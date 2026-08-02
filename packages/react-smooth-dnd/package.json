@@ -1,6 +1,6 @@
 {
   "name": "@likelylogic/react-smooth-dnd",
-  "version": "1.0.0",
+  "version": "0.13.0",
   "description": "React wrappers for smooth-dnd",
   "type": "module",
   "main": "./dist/react-smooth-dnd.umd.cjs",

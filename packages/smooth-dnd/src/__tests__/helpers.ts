@@ -145,6 +145,27 @@ export function makeContainer (count = 3, options: LayoutOptions = {}) {
   return element
 }
 
+/**
+ * Mount a container, then re-apply the synthetic layout to whatever ended up as its draggables.
+ *
+ * Order matters here and is very easy to get wrong. In vanilla mode `smoothDnD()` wraps each child,
+ * and the **wrappers** become the draggables — so a layout applied before mounting lands on the
+ * original children and leaves every draggable measuring zero. That does not fail loudly: the
+ * insertion index simply stops tracking the pointer, and any test asserting on it passes for the
+ * wrong reason.
+ *
+ * Use this rather than calling `smoothDnD()` directly whenever a test cares where an item lands.
+ */
+export function mountContainer (
+  element: HTMLElement,
+  options: Record<string, unknown> = {},
+  layout: LayoutOptions = {},
+) {
+  const instance = smoothDnD(element, { animationDuration: 1, ...options } as any)
+  layoutContainer(element, layout)
+  return instance
+}
+
 /** Remove everything the previous test attached, so module-level engine state can't leak visually. */
 export function cleanupDom () {
   document.body.innerHTML = ''
