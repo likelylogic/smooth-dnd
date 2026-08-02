@@ -554,6 +554,25 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
           dropAreaEnd = containerEnd;
         }
 
+        if (stationary) {
+          // For an indicator the drop area is a *boundary*, not a gap. Nothing is opening, so
+          // reporting a span leaves the caller drawing a line through the middle of something.
+          //
+          // Most visibly the slot the dragged item just vacated: the neighbour lookup above skips
+          // the removed item, so an insertion point either side of it reports the whole hole —
+          // a full item tall — and a line drawn down the middle of that lands nowhere meaningful.
+          // The same applies past the last item, where the area otherwise runs to the container's
+          // end and can be arbitrarily tall.
+          //
+          // Note this deliberately does *not* skip the removed item: the boundary either side of
+          // the hole is exactly where the indicator belongs.
+          const boundary = addedIndex > 0
+            ? layout.getBeginEnd(draggables[addedIndex - 1]).end
+            : layout.getBeginEndOfContainer().begin;
+          dropAreaBegin = boundary;
+          dropAreaEnd = boundary;
+        }
+
         const shadowRectTopLeft = beforeBounds && afterBounds ? layout.getTopLeftOfElementBegin(beforeBounds.end) : null;
 
         prevAddedIndex = addedIndex;
