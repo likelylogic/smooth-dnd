@@ -65,16 +65,31 @@ function removeReleaseListeners() {
   });
 }
 
+/**
+ * Where the ghost lives for the duration of a drag.
+ *
+ * The body, unless the consumer says otherwise. The ghost is `position: fixed` and positioned in
+ * viewport coordinates, which only holds while nothing between it and the viewport establishes a
+ * containing block. `transform` does exactly that — it makes a fixed element resolve against that
+ * ancestor instead, and become clippable by its `overflow`.
+ *
+ * Parenting the ghost inside its container (as this used to) walks straight into both, because the
+ * library itself puts `transform` on wrappers during a drag and `styles.ts` gives every vertical
+ * wrapper `overflow: hidden`. In a nested container that meant the ghost was silently offset and
+ * then clipped out of existence; a consumer transform on an ancestor — a `:hover` scale, say — did
+ * the same thing to a flat one.
+ *
+ * The trade-off is that a ghost at the body no longer inherits container-scoped CSS. Class-based
+ * styling still applies (the clone keeps its classes and scoped-style attributes); only inherited
+ * properties like `font` or `color` set on an ancestor are lost. `getGhostParent` is the escape
+ * hatch for anyone who needs the old behaviour.
+ */
 function getGhostParent() {
   if (draggableInfo && draggableInfo.ghostParent) {
     return draggableInfo.ghostParent;
   }
 
-  if (grabbedElement) {
-    return grabbedElement.parentElement || window.document.body;
-  } else {
-    return window.document.body;
-  }
+  return window.document.body;
 }
 
 function getGhostElement(wrapperElement: HTMLElement, { x, y }: Position, container: IContainer, cursor: string): GhostInfo {
