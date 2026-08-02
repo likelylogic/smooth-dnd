@@ -11,7 +11,7 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
-## 0.16.3
+## 0.16.4
 
 ### Fixed
 
@@ -27,6 +27,13 @@ Nothing has been published yet, so no released version is being changed retroact
   In those modes the drop area is now a zero-length **boundary** at the insertion point, which is
   what an indicator actually needs. The same collapse fixes appending, where the area otherwise ran
   from the last item to the container's end — most of the page, in a short list.
+
+- **The indicator could only reach one edge of the vacated slot.** Dragging down past it reported
+  its top edge and never its bottom; dragging up, the reverse. The same neighbour lookup is used for
+  the hysteresis band, and skipping the dragged item stretched that band across two slots — so it
+  swallowed the vacated slot whole and whichever edge you approached from was the only one
+  reachable. Under the stationary modes the dragged item has not moved, its slot is still there, and
+  both of its edges are legitimate insertion boundaries.
 
 ---
 
