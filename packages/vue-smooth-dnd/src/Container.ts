@@ -30,6 +30,9 @@ export default defineComponent({
 
   props: {
     behaviour: String as PropType<ContainerOptions['behaviour']>,
+    containerId: [String, Number] as PropType<ContainerOptions['containerId']>,
+    dropFeedback: String as PropType<ContainerOptions['dropFeedback']>,
+    dropOnItems: { type: Boolean, default: undefined },
     groupName: String,
     orientation: String as PropType<ContainerOptions['orientation']>,
     dragHandleSelector: String,
@@ -84,7 +87,8 @@ export default defineComponent({
       // Only forward props the caller actually set — smooth-dnd fills in its own
       // defaults, and passing `undefined` would override them.
       const passthrough = [
-        'behaviour', 'groupName', 'orientation', 'dragHandleSelector',
+        'behaviour', 'containerId', 'dropFeedback', 'dropOnItems',
+        'groupName', 'orientation', 'dragHandleSelector',
         'nonDragAreaSelector', 'dragBeginDelay', 'animationDuration',
         'autoScrollEnabled', 'lockAxis', 'dragClass', 'dropClass',
         'removeOnDropOut', 'getChildPayload', 'shouldAnimateDrop',

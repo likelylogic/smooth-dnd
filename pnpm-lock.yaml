@@ -32,6 +32,9 @@ importers:
       '@likelylogic/react-smooth-dnd':
         specifier: workspace:*
         version: link:../../packages/react-smooth-dnd
+      '@likelylogic/smooth-dnd':
+        specifier: workspace:*
+        version: link:../../packages/smooth-dnd
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -53,6 +56,9 @@ importers:
       '@demo/shared':
         specifier: workspace:*
         version: link:../shared
+      '@likelylogic/smooth-dnd':
+        specifier: workspace:*
+        version: link:../../packages/smooth-dnd
       '@likelylogic/vue-smooth-dnd':
         specifier: workspace:*
         version: link:../../packages/vue-smooth-dnd
