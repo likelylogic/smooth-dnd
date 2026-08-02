@@ -11,6 +11,25 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.16.3
+
+### Fixed
+
+- **The drop indicator was drawn in the middle of the slot the dragged item vacated**, rather than
+  on a boundary between items.
+
+  The neighbour lookup that produces the drop area deliberately skips the item being dragged. That
+  is right for `gap` feedback, where the area describes the space being opened — but under
+  `indicator` and `none` nothing opens, so an insertion point either side of the vacated slot
+  reported the whole hole, a full item tall. A line drawn down the middle of that lands in the
+  middle of an empty space.
+
+  In those modes the drop area is now a zero-length **boundary** at the insertion point, which is
+  what an indicator actually needs. The same collapse fixes appending, where the area otherwise ran
+  from the last item to the container's end — most of the page, in a short list.
+
+---
+
 ## 0.16.2
 
 ### Fixed

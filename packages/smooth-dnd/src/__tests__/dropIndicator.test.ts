@@ -245,6 +245,70 @@ describe('dropFeedback: indicator', () => {
     expect(indices).toEqual(sorted)
   })
 
+  it('reports a boundary rather than a span', async () => {
+    // Nothing is opening in this mode, so there is no area to report — only the line the item
+    // would land on. A span would leave the caller drawing through the middle of something.
+    const element = makeContainer(4, { containerRect: RECT, itemSize: 50 })
+    const heights: number[] = []
+    mount(element, {
+      dropFeedback: 'indicator',
+      getChildPayload: (i: number) => ({ id: i }),
+      onDropReady: (result: DropResult) => heights.push(result.dropIndicator!.relative.height),
+    }, { containerRect: RECT, itemSize: 50 })
+
+    const drag = await startDrag(element, 0)
+    for (const y of [0, 20, 60, 110, 160, 220]) {
+      await drag.moveTo(0, y)
+    }
+    await drag.drop()
+
+    expect(heights.length).toBeGreaterThan(1)
+    expect(heights.every(h => h === 0)).toBe(true)
+  })
+
+  it('puts the boundary at the edge of the slot the item vacated, not its middle', async () => {
+    // The neighbour lookup skips the removed item, so an insertion point either side of it used to
+    // report the whole hole — a full item tall — and a line drawn down the middle of that landed in
+    // the middle of the empty slot rather than on a boundary.
+    const element = makeContainer(4, { containerRect: RECT, itemSize: 50 })
+    const tops: number[] = []
+    mount(element, {
+      dropFeedback: 'indicator',
+      getChildPayload: (i: number) => ({ id: i }),
+      onDropReady: (result: DropResult) => tops.push(result.dropIndicator!.relative.top),
+    }, { containerRect: RECT, itemSize: 50 })
+
+    // item 0 is the one being dragged, so its slot spans 0..50
+    const drag = await startDrag(element, 0)
+    await drag.moveTo(0, 20)
+    await drag.drop()
+
+    // every boundary must sit on an item edge — a multiple of the item size — and never at 25,
+    // which is the midpoint of the vacated slot
+    expect(tops.length).toBeGreaterThan(0)
+    expect(tops.every(top => top % 50 === 0)).toBe(true)
+  })
+
+  it('collapses the boundary at the end of the list too', async () => {
+    // Appending otherwise reports everything from the last item to the container's end, which in a
+    // short list inside a tall container is most of the page.
+    const element = makeContainer(3, { containerRect: RECT, itemSize: 50 })
+    const seen: DropResult[] = []
+    mount(element, {
+      dropFeedback: 'indicator',
+      getChildPayload: (i: number) => ({ id: i }),
+      onDropReady: (result: DropResult) => seen.push(result),
+    }, { containerRect: RECT, itemSize: 50 })
+
+    const drag = await startDrag(element, 0)
+    await drag.moveTo(0, 390)
+    await drag.drop()
+
+    const last = seen.map(r => r.dropIndicator).filter(Boolean).pop()!
+    expect(last.relative.height).toBe(0)
+    expect(last.relative.top).toBeLessThanOrEqual(150) // the end of the last item, not of the container
+  })
+
   it('does not add a placeholder element to the container', async () => {
     const element = makeContainer(4, { containerRect: RECT, itemSize: 50 })
     mount(element, {
