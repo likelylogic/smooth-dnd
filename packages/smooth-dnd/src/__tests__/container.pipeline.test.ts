@@ -129,13 +129,37 @@ describe('calculateTranslations', () => {
     expect(props.layout.getTranslation(props.draggables[3])).toBe(0)
   })
 
-  it('reports the indices only when they change', () => {
+  it('reports only when something changed', () => {
     const props = makeProps(3, { itemSize: 50 })
     const translate = calculateTranslations(props)
     const result = { dragResult: { addedIndex: 1, removedIndex: null, elementSize: 50 } as any }
 
-    expect(translate(result)).toEqual({ addedIndex: 1, removedIndex: null })
+    expect(translate(result)).toEqual({ removedIndex: null })
     expect(translate(result)).toBeUndefined()
+  })
+
+  it('parts the list at gapIndex when one is given, rather than at addedIndex', () => {
+    // An `into` target has no insertion index but still holds the siblings apart, so the layout
+    // does not jump every time the pointer crosses the boundary between "between" and "onto".
+    const props = makeProps(4, { itemSize: 50 })
+    const translate = calculateTranslations(props)
+
+    translate({ dragResult: { addedIndex: null, gapIndex: 2, removedIndex: null, elementSize: 50 } as any })
+
+    expect(props.layout.getTranslation(props.draggables[1])).toBe(0)
+    expect(props.layout.getTranslation(props.draggables[2])).toBe(50)
+    expect(props.layout.getTranslation(props.draggables[3])).toBe(50)
+  })
+
+  it('closes the gap when neither index is given', () => {
+    const props = makeProps(4, { itemSize: 50 })
+    const translate = calculateTranslations(props)
+
+    translate({ dragResult: { addedIndex: 2, removedIndex: null, elementSize: 50 } as any })
+    translate({ dragResult: { addedIndex: null, removedIndex: null, elementSize: 50 } as any })
+
+    expect(props.layout.getTranslation(props.draggables[2])).toBe(0)
+    expect(props.layout.getTranslation(props.draggables[3])).toBe(0)
   })
 
   it('never translates the removed item itself', () => {

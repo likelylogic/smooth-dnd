@@ -520,8 +520,10 @@ function handleInsertionSizeChange({ element, draggables, layout, getOptions }: 
 export function calculateTranslations({ draggables, layout }: ContainerProps) {
   let prevAddedIndex: number | null = null;
   let prevRemovedIndex: number | null = null;
-  return function ({ dragResult: { addedIndex, removedIndex, elementSize } }: { dragResult: DragResult }) {
-    if (addedIndex !== prevAddedIndex || removedIndex !== prevRemovedIndex) {
+  return function ({ dragResult: { addedIndex, removedIndex, elementSize, gapIndex } }: { dragResult: DragResult }) {
+    // Where the siblings part, which is not always where the item would land — see `gapIndex`.
+    const partAt = gapIndex === undefined ? addedIndex : gapIndex;
+    if (partAt !== prevAddedIndex || removedIndex !== prevRemovedIndex) {
       for (let index = 0; index < draggables.length; index++) {
         if (index !== removedIndex) {
           const draggable = draggables[index];
@@ -529,17 +531,17 @@ export function calculateTranslations({ draggables, layout }: ContainerProps) {
           if (removedIndex !== null && removedIndex < index) {
             translate -= elementSize;
           }
-          if (addedIndex !== null && addedIndex <= index) {
+          if (partAt !== null && partAt <= index) {
             translate += elementSize;
           }
           layout.setTranslation(draggable, translate);
         }
       }
 
-      prevAddedIndex = addedIndex;
+      prevAddedIndex = partAt;
       prevRemovedIndex = removedIndex;
 
-      return { addedIndex, removedIndex };
+      return { removedIndex };
     }
 
     return undefined;
@@ -743,7 +745,9 @@ export function resolveDropOnItem(params: ContainerProps) {
 
   return ({ dragResult: { pos, addedIndex, removedIndex, elementSize } }: DragInfo) => {
     const insertion = () => (
-      addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null }
+      addedIndex !== null
+        ? { gapIndex: undefined, dropTarget: { kind: 'at' as const, index: addedIndex } }
+        : { gapIndex: undefined, dropTarget: null }
     );
 
     if (!getOptions().dropOnItems) {
@@ -769,9 +773,11 @@ export function resolveDropOnItem(params: ContainerProps) {
 
       const offset = (pos - begin) / size;
       if (offset > edgeBand && offset < 1 - edgeBand) {
-        // No insertion index: nothing is being made room for, so no gap should open. Under `gap`
-        // feedback this is what makes the siblings settle back while an item is highlighted.
-        return { addedIndex: null, dropTarget: { kind: 'into' as const, index } };
+        // No insertion index — nothing is being made room for — but the siblings stay parted where
+        // they already were. Closing the gap here would shift everything below it by an item's
+        // height every time the pointer crossed the boundary, which loses your place exactly when
+        // you are trying to aim. Only the highlight should change.
+        return { addedIndex: null, gapIndex: index, dropTarget: { kind: 'into' as const, index } };
       }
       break;
     }
