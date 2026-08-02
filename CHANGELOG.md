@@ -11,6 +11,25 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.16.2
+
+### Fixed
+
+- **The drop indicator flickered between slots.** The insertion point re-resolved on every frame,
+  bouncing back and forth rather than settling.
+
+  The hysteresis band is derived from the gap between the neighbours either side of the insertion
+  point. Under `gap` feedback the siblings slide apart, so that gap is a real one the width of the
+  dragged item and the band is comfortably wide. Nothing moves under `indicator` or `none`, which
+  leaves the neighbours touching and collapses the band to zero width — so the pointer could never
+  be *inside* it and the index was recomputed continuously.
+
+  The band is now widened to the neighbours' midpoints in those modes: one item wide, centred on
+  the boundary, which is the natural hysteresis for a midpoint-based insertion and cannot
+  oscillate. `gap` feedback is untouched.
+
+---
+
 ## 0.16.1
 
 ### Fixed
