@@ -11,6 +11,40 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.16.0
+
+### Added
+
+- **`dropOnItems` container option** — resolve the middle half of an item to a drop *onto* it, which
+  is what trees and folders need. The quarter at either end still resolves to an insertion point, so
+  reordering keeps working.
+
+  `onDropReady` and `onDropComplete` both carry the resolved target:
+
+  ```ts
+  { kind: 'at' | 'into', index }
+  ```
+
+  `at` means inserted at `index`; `into` means dropped onto the item at `index`. In indicator mode
+  the indicator outlines the whole target item rather than a gap between two.
+
+  **Requires `dropFeedback` to be `indicator` or `none`, and is ignored under `gap`.** Not an
+  arbitrary restriction: an open gap has already displaced the items to make room for an insertion,
+  so there is no longer an item under the pointer to resolve against, and the two kinds of feedback
+  would oscillate against each other.
+
+  An `into` drop reports `action: 'move'` even within one container — landing inside another item is
+  not a change of position among siblings, so calling it a reorder would mislead.
+
+### Fixed
+
+- **A container nested inside the dragged item would accept it**, making the item its own
+  descendant. The guard existed but compared the nearest ancestor *wrapper* against the source
+  *container* element — and a wrapper is always a child of a container, never equal to one, so it
+  never fired.
+
+---
+
 ## 0.15.0
 
 ### Added
