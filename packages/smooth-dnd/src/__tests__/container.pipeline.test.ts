@@ -234,24 +234,30 @@ describe('getShadowBeginEnd', () => {
     expect(compute(args)).not.toBeNull()
   })
 
-  it.fails('produces a usable dropArea when inserting after the last item (known bug)', () => {
-    // Engine bug 13. container.ts:516-517 reads `.end` / `.begin` off getContainerRectangles().rect,
-    // which is a raw DOM rect with no such keys — so dropAreaEnd is NaN. This is latent today
-    // because drawDropPlaceholder only ever reads dropArea.begin, but R4 wants to expose these
-    // bounds as public API, so it has to be fixed first.
+  it('runs the drop area to the container end when inserting after the last item', () => {
     const props = makeProps(3, { itemSize: 50, containerRect: { top: 0, bottom: 500 } })
     const result = shadowFor(props, { addedIndex: 3, pos: 160 })!
 
-    expect(result.shadowBeginEnd.dropArea.end).not.toBeNaN()
+    expect(result.shadowBeginEnd.dropArea.begin).toBe(150) // end of the last item
+    expect(result.shadowBeginEnd.dropArea.end).toBe(500)   // end of the container
   })
 
-  it('currently yields NaN for dropArea.end past the last item', () => {
-    // Pinning the broken behaviour so the fix is visible when it lands.
+  it('reports the drop area in the same coordinate space at both ends', () => {
+    // Every branch has to agree, or a consumer rendering an indicator from these bounds gets a
+    // rect that is right in the middle of a list and wrong at the end of it.
     const props = makeProps(3, { itemSize: 50, containerRect: { top: 0, bottom: 500 } })
-    const result = shadowFor(props, { addedIndex: 3, pos: 160 })!
 
-    expect(result.shadowBeginEnd.dropArea.end).toBeNaN()
-    expect(result.shadowBeginEnd.dropArea.begin).toBe(150) // the sane half
+    const middle = shadowFor(props, { addedIndex: 1, pos: 60 })!.shadowBeginEnd.dropArea
+    const past = shadowFor(props, { addedIndex: 3, pos: 160 })!.shadowBeginEnd.dropArea
+
+    // both are viewport coordinates, so both are within the container's own span
+    for (const area of [middle, past]) {
+      expect(Number.isFinite(area.begin)).toBe(true)
+      expect(Number.isFinite(area.end)).toBe(true)
+      expect(area.end).toBeGreaterThanOrEqual(area.begin)
+      expect(area.begin).toBeGreaterThanOrEqual(0)
+      expect(area.end).toBeLessThanOrEqual(500)
+    }
   })
 })
 

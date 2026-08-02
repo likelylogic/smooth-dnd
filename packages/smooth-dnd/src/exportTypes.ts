@@ -17,6 +17,13 @@ export type SmoothDnDCreator = ((element: HTMLElement, options?: ContainerOption
 	 * a drag spans containers, and no single one of them owns the outcome.
 	 */
 	onDropComplete: (handler: DropCompleteCallback) => () => void;
+	/**
+	 * Whether pressing Escape cancels an in-progress drag. Defaults to true.
+	 *
+	 * Set false to own the key yourself — the listener runs in the capture phase, so it would
+	 * otherwise take precedence over an application's own Escape handling.
+	 */
+	cancelOnEscape?: boolean;
 };
 
 type Callback<T> = (params: T) => void;
