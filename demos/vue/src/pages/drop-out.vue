@@ -1,6 +1,6 @@
 <template>
   <Container
-    class="drop-out"
+    class="drop-out drop-target"
     :class="{ 'is-active': isOver }"
     group-name="drop-out"
     behaviour="drop-zone"
@@ -14,12 +14,19 @@
       the wrapper class a mousedown on them can't start a drag.
     -->
     <div class="drop-out__lists">
-      <div v-for="(list, listIndex) in lists" :key="listIndex" class="drop-out__list">
-        <h4 class="drop-out__heading">List {{ listIndex + 1 }}</h4>
+      <div
+        v-for="(list, listIndex) in lists"
+        :key="listIndex"
+        class="drop-out__list"
+        :class="{ 'is-active': activeList === listIndex }"
+      >
+        <h4 class="drop-label">List {{ listIndex + 1 }}</h4>
         <Container
           group-name="drop-out"
           :get-child-payload="index => lists[listIndex][index]"
           @drop="onDropInList(listIndex, $event)"
+          @drag-enter="activeList = listIndex"
+          @drag-leave="activeList = null"
         >
           <Draggable v-for="item in list" :key="item.id">
             <div class="draggable-item">{{ item.data }}</div>
@@ -29,7 +36,7 @@
     </div>
 
     <div class="drop-out__aside">
-      <h4 class="drop-out__heading">
+      <h4 class="drop-label">
         Dropped out
         <button v-if="detached.length" class="drop-out__reset" @click="reset">reset</button>
       </h4>
@@ -40,7 +47,7 @@
         <li v-for="item in detached" :key="item.id">{{ item.data }}</li>
       </ul>
 
-      <h4 class="drop-out__heading">Drop events</h4>
+      <h4 class="drop-label">Drop events</h4>
       <ol class="drop-out__log">
         <li v-for="(entry, i) in log" :key="i">{{ entry }}</li>
       </ol>
@@ -68,6 +75,7 @@ function build () {
 const lists = ref<Item[][]>(build())
 const detached = ref<Item[]>([])
 const isOver = ref(false)
+const activeList = ref<number | null>(null)
 const log = ref<string[]>([])
 
 function note (message: string) {
@@ -75,6 +83,7 @@ function note (message: string) {
 }
 
 function onDropInList (listIndex: number, dropResult: DragResult) {
+  activeList.value = null
   const { removedIndex, addedIndex } = dropResult
   if (removedIndex === null && addedIndex === null) {
     return
@@ -100,6 +109,7 @@ function onDropOut (dropResult: DragResult) {
 
 function reset () {
   lists.value = build()
+  activeList.value = null
   detached.value = []
   log.value = []
 }

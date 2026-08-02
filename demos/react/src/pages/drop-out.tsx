@@ -26,6 +26,7 @@ export default function DropOut () {
   const [lists, setLists] = useState<Item[][]>(build)
   const [detached, setDetached] = useState<Item[]>([])
   const [isOver, setIsOver] = useState(false)
+  const [activeList, setActiveList] = useState<number | null>(null)
   const [log, setLog] = useState<string[]>([])
 
   const note = useCallback((message: string) => {
@@ -33,6 +34,7 @@ export default function DropOut () {
   }, [])
 
   const onDropInList = useCallback((listIndex: number, dropResult: DragResult) => {
+    setActiveList(null)
     const { removedIndex, addedIndex } = dropResult
     if (removedIndex === null && addedIndex === null) {
       return
@@ -60,6 +62,7 @@ export default function DropOut () {
 
   const reset = useCallback(() => {
     setLists(build())
+    setActiveList(null)
     setDetached([])
     setLog([])
   }, [])
@@ -74,7 +77,7 @@ export default function DropOut () {
       // The React Container renders a bare div and drops className, so the
       // render prop is the way to style the root.
       render={ref => (
-        <div ref={ref} className={`drop-out ${isOver ? 'is-active' : ''}`}>
+        <div ref={ref} className={`drop-out drop-target ${isOver ? 'is-active' : ''}`}>
           {/*
             Plain divs, not Draggables. They are still counted as this
             container's children internally, but drop-zone never sorts, and
@@ -82,12 +85,17 @@ export default function DropOut () {
           */}
           <div className="drop-out__lists">
             {lists.map((list, listIndex) => (
-              <div key={listIndex} className="drop-out__list">
-                <h4 className="drop-out__heading">List {listIndex + 1}</h4>
+              <div
+                key={listIndex}
+                className={`drop-out__list ${activeList === listIndex ? 'is-active' : ''}`}
+              >
+                <h4 className="drop-label">List {listIndex + 1}</h4>
                 <Container
                   groupName="drop-out"
                   getChildPayload={index => lists[listIndex][index]}
                   onDrop={e => onDropInList(listIndex, e)}
+                  onDragEnter={() => setActiveList(listIndex)}
+                  onDragLeave={() => setActiveList(null)}
                 >
                   {list.map(item => (
                     <Draggable key={item.id}>
@@ -100,7 +108,7 @@ export default function DropOut () {
           </div>
 
           <div className="drop-out__aside">
-            <h4 className="drop-out__heading">
+            <h4 className="drop-label">
               Dropped out
               {detached.length > 0 && (
                 <button className="drop-out__reset" onClick={reset}>reset</button>
@@ -115,7 +123,7 @@ export default function DropOut () {
               {detached.map(item => <li key={item.id}>{item.data}</li>)}
             </ul>
 
-            <h4 className="drop-out__heading">Drop events</h4>
+            <h4 className="drop-label">Drop events</h4>
             <ol className="drop-out__log">
               {log.map((entry, i) => <li key={i}>{entry}</li>)}
             </ol>
