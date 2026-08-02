@@ -1,4 +1,4 @@
-import { ContainerOptions, DropIndicator } from './exportTypes';
+import { ContainerOptions, DropIndicator, DropTarget } from './exportTypes';
 
 export type Position = { x: number; y: number };
 export type MousePosition = { clientX: number; clientY: number };
@@ -46,6 +46,7 @@ export interface DragResult {
   containerBoxChanged?: boolean;
   dropPlaceholderContainer?: HTMLDivElement;
   dropIndicator?: DropIndicator | null;
+  dropTarget?: DropTarget | null;
 }
 
 export interface DraggableInfo {

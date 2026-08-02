@@ -38,6 +38,22 @@ export interface DropResult {
 	 * mode. Null while the pointer is not over the container.
 	 */
 	dropIndicator?: DropIndicator | null;
+	/** How and where the item would land. Present once the pointer is over a container. */
+	dropTarget?: DropTarget | null;
+}
+
+/**
+ * How an item lands.
+ *
+ * - `at` — between items, at `index`
+ * - `into` — onto the item at `index`, which is what trees and folders need
+ */
+export type DropKind = 'at' | 'into';
+
+export interface DropTarget {
+	kind: DropKind;
+	/** The insertion point for `at`, or the index of the item being dropped onto for `into`. */
+	index: number;
 }
 
 /** A rectangle in the CSS sense — an origin and a size, ready to position an element with. */
@@ -84,6 +100,11 @@ export interface DropEndpoint {
 	options: ContainerOptions;
 	/** Index within that container. */
 	index: number;
+	/**
+	 * How the item landed here. `at` means it was inserted at `index`; `into` means it was dropped
+	 * onto the item at `index`. Always `at` for the `from` end.
+	 */
+	kind: DropKind;
 }
 
 /**
@@ -142,6 +163,17 @@ export interface ContainerOptions {
 	 * Orthogonal to `behaviour`, which describes what a drop *means* rather than how it looks.
 	 */
 	dropFeedback?: 'gap' | 'indicator' | 'none';
+	/**
+	 * Allow dropping *onto* an item as well as between items — what trees and folders need.
+	 *
+	 * The middle half of each item resolves to `into`; the quarter at either end still resolves to
+	 * an insertion point, so reordering keeps working.
+	 *
+	 * **Requires `dropFeedback` to be `indicator` or `none`**, and is ignored under `gap`. Once a gap
+	 * opens the layout has already moved to accommodate an insertion, so there is no longer an item
+	 * under the pointer to drop into, and the two kinds of feedback would fight each other.
+	 */
+	dropOnItems?: boolean;
 	groupName?: string; // if not defined => container will not interfere with other containers
 	orientation?: 'vertical' | 'horizontal';
 	dragHandleSelector?: string;

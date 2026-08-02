@@ -4,8 +4,8 @@ import { domDropHandler } from './dropHandlers';
 import { ContainerOptions, SmoothDnD, SmoothDnDCreator, DropPlaceholderOptions, DropCompleteCallback } from './exportTypes';
 import { ContainerProps, DraggableInfo, DragInfo, DragResult, ElementX, IContainer, LayoutManager } from './interfaces';
 import layoutManager from './layoutManager';
-import Mediator from './mediator';
-import { addClass, getParent, getParentRelevantContainerElement, hasClass, listenScrollParent, removeClass } from './utils';
+import Mediator, { getDraggedElement } from './mediator';
+import { addClass, getParent, getParentRelevantContainerElement, hasClass, hasParent, listenScrollParent, removeClass } from './utils';
 
 function setAnimation(element: HTMLElement, add: boolean, animationDuration = defaultOptions.animationDuration) {
   if (add) {
@@ -27,8 +27,14 @@ function isDragRelevant({ element, getOptions }: ContainerProps) {
     const sourceOptions = sourceContainer.getOptions();
     if (options.behaviour === 'copy') return false;
 
-    const parentWrapper = getParent(element, '.' + wrapperClass);
-    if (parentWrapper === sourceContainer.element) {
+    // A container living inside the item being dragged must not accept it — that would make the
+    // item its own descendant.
+    //
+    // This previously compared the nearest ancestor *wrapper* against the source *container*
+    // element. A wrapper is always a child of a container and never equal to one, so the check
+    // never fired and nested containers would happily swallow their own ancestor.
+    const draggedElement = getDraggedElement();
+    if (draggedElement && hasParent(element, draggedElement)) {
       return false;
     }
 
@@ -599,6 +605,64 @@ function fireDragEnterLeaveEvents({ getOptions }: ContainerProps) {
 }
 
 /**
+ * Decide whether the pointer is over the *middle* of an item — a drop onto it — rather than near a
+ * boundary between items.
+ *
+ * This is the one-dimensional implementation of target resolution. It is isolated here rather than
+ * folded into the insertion search because the search itself is what has to change for wrapping and
+ * grid layouts; the banding above it does not.
+ *
+ * An `into` target clears `addedIndex`, so nothing downstream opens a gap. There is nothing to make
+ * room for — the item is going inside another one, not between two.
+ */
+export function resolveDropOnItem({ draggables, layout, getOptions }: ContainerProps) {
+  const findDraggable = findDraggebleAtPos({ layout });
+  /** Fraction of an item at each end that still counts as "between", not "onto". */
+  const edgeBand = 0.25;
+
+  return ({ dragResult: { pos, addedIndex, removedIndex } }: DragInfo) => {
+    // Requires a non-gap feedback mode, and not by accident. Once a gap opens, the layout has
+    // already moved to accommodate an *insertion*, so there is no longer an item under the pointer
+    // to drop into — resolving one anyway would make the two feedback states oscillate.
+    if (!getOptions().dropOnItems || (getOptions().dropFeedback || 'gap') === 'gap') {
+      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+    }
+
+    if (pos === null || draggables.length === 0) {
+      return { dropTarget: null };
+    }
+
+    const hitIndex = findDraggable(draggables, pos);
+
+    // The dragged item is still in the list and still occupies its slot — nothing has translated
+    // in this mode — but an item cannot be dropped inside itself.
+    if (hitIndex === removedIndex) {
+      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+    }
+
+    if (hitIndex === null || hitIndex < 0 || hitIndex >= draggables.length) {
+      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+    }
+
+    const { begin, end } = layout.getBeginEnd(draggables[hitIndex]);
+    const size = end - begin;
+    if (size <= 0) {
+      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+    }
+
+    const offset = (pos - begin) / size;
+    if (offset > edgeBand && offset < 1 - edgeBand) {
+      return {
+        addedIndex: null,
+        dropTarget: { kind: 'into' as const, index: hitIndex },
+      };
+    }
+
+    return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+  };
+}
+
+/**
  * Turn the insertion point into a rectangle the application can render.
  *
  * The whole point of `dropFeedback: 'indicator'` is that the consumer should not have to do this
@@ -606,48 +670,65 @@ function fireDragEnterLeaveEvents({ getOptions }: ContainerProps) {
  * list. `getShadowBeginEnd` has already worked out the gap along the layout axis; this spans it
  * across the other axis and converts it into both coordinate spaces.
  */
-export function computeDropIndicator({ element, layout, getOptions }: ContainerProps) {
-  return ({ dragResult: { addedIndex, shadowBeginEnd } }: DragInfo) => {
+export function computeDropIndicator({ element, draggables, layout, getOptions }: ContainerProps) {
+  return ({ dragResult: { addedIndex, shadowBeginEnd, dropTarget } }: DragInfo) => {
     if (getOptions().dropFeedback !== 'indicator') {
       return null;
+    }
+
+    const rect = layout.getContainerRectangles().rect;
+
+    // Dropping onto an item: outline the item, not a gap between two.
+    if (dropTarget && dropTarget.kind === 'into' && draggables[dropTarget.index]) {
+      const bounds = layout.getBeginEnd(draggables[dropTarget.index]);
+      return { dropIndicator: buildIndicator(element, rect, bounds.begin, bounds.end - bounds.begin, getOptions()) };
     }
 
     if (addedIndex === null || !shadowBeginEnd || !shadowBeginEnd.dropArea) {
       return { dropIndicator: null };
     }
 
-    const rect = layout.getContainerRectangles().rect;
     const { begin, end } = shadowBeginEnd.dropArea;
     const size = Math.max(0, end - begin);
 
-    const viewport = getOptions().orientation === 'horizontal'
-      ? { left: begin, width: size, top: rect.top, height: rect.bottom - rect.top }
-      : { top: begin, height: size, left: rect.left, width: rect.right - rect.left };
+    return { dropIndicator: buildIndicator(element, rect, begin, size, getOptions()) };
+  };
+}
 
-    return {
-      dropIndicator: {
-        viewport,
-        relative: {
-          top: viewport.top - rect.top,
-          left: viewport.left - rect.left,
-          width: viewport.width,
-          height: viewport.height,
-        },
-        container: element,
-      },
-    };
+/** Span `begin`..`begin + size` on the layout axis, and the whole container on the other. */
+function buildIndicator(element: HTMLElement, rect: any, begin: number, size: number, options: ContainerOptions) {
+  const viewport = options.orientation === 'horizontal'
+    ? { left: begin, width: size, top: rect.top, height: rect.bottom - rect.top }
+    : { top: begin, height: size, left: rect.left, width: rect.right - rect.left };
+
+  return {
+    viewport,
+    relative: {
+      top: viewport.top - rect.top,
+      left: viewport.left - rect.left,
+      width: viewport.width,
+      height: viewport.height,
+    },
+    container: element,
   };
 }
 
 function fireOnDropReady({ getOptions }: ContainerProps) {
   let lastAddedIndex: number | null = null;
   const options = getOptions();
-  return ({ dragResult: { addedIndex, removedIndex, dropIndicator }, draggableInfo: { payload, element } }: DragInfo) => {
-    if (options.onDropReady && addedIndex !== null && lastAddedIndex !== addedIndex) {
-      lastAddedIndex = addedIndex;
-      let adjustedAddedIndex = addedIndex;
+  let lastKey: string | null = null;
+  return ({ dragResult: { addedIndex, removedIndex, dropIndicator, dropTarget }, draggableInfo: { payload, element } }: DragInfo) => {
+    // An `into` target has no addedIndex, so key off the resolved target as well — otherwise
+    // moving between items would go unreported.
+    const key = dropTarget ? `${dropTarget.kind}:${dropTarget.index}` : null;
+    const changed = key !== lastKey;
+    lastKey = key;
 
-      if (removedIndex !== null && addedIndex > removedIndex) {
+    if (options.onDropReady && (addedIndex !== null || (dropTarget && dropTarget.kind === 'into')) && changed) {
+      lastAddedIndex = addedIndex;
+      let adjustedAddedIndex = addedIndex as number;
+
+      if (addedIndex !== null && removedIndex !== null && addedIndex > removedIndex) {
         adjustedAddedIndex--;
       }
 
@@ -657,6 +738,7 @@ function fireOnDropReady({ getOptions }: ContainerProps) {
         payload,
         element: element ? element.firstElementChild as HTMLElement : undefined,
         dropIndicator,
+        dropTarget,
       });
     }
   };
@@ -679,6 +761,7 @@ function getDragHandler(params: ContainerProps) {
       handleTargetContainer,
       invalidateShadowBeginEndIfNeeded,
       getNextAddedIndex,
+      resolveDropOnItem,
       resetShadowAdjustment,
       getShadowBeginEnd,
       computeDropIndicator,
@@ -710,6 +793,7 @@ function getDragHandler(params: ContainerProps) {
       handleTargetContainer,
       invalidateShadowBeginEndIfNeeded,
       getNextAddedIndex,
+      resolveDropOnItem,
       resetShadowAdjustment,
       handleInsertionSizeChange,
       calculateTranslations,
