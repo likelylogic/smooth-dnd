@@ -11,6 +11,24 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.14.0
+
+### Added
+
+- **`smoothDnD.cancelOnEscape`** — pressing Escape now cancels an in-progress drag. On by default;
+  set false to own the key yourself. The listener runs in the capture phase, so while a drag is
+  running the key does not reach application handlers — which is the point, but also why the opt-out
+  exists.
+
+### Fixed
+
+- **`dropArea.end` was `NaN` when inserting past the last item.** It read `.end` / `.begin` off a raw
+  DOM rect, which has neither, and computed a length where every neighbouring branch assigns a
+  viewport coordinate. Latent until now because only `dropArea.begin` was ever read, but these are
+  the bounds the forthcoming drop-indicator API exposes.
+
+---
+
 ## 0.13.0
 
 The first release since the fork's tooling migration, covering the engine review and the first

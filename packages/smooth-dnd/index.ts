@@ -42,6 +42,7 @@ delegateProperty(deprecetedDefaultExport, container, 'useTransformForGhost');
 delegateProperty(deprecetedDefaultExport, container, 'maxScrollSpeed');
 delegateProperty(deprecetedDefaultExport, container, 'wrapChild');
 delegateProperty(deprecetedDefaultExport, container, 'dropHandler');
+delegateProperty(deprecetedDefaultExport, container, 'cancelOnEscape');
 
 
 export default deprecetedDefaultExport;

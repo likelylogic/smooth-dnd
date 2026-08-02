@@ -523,8 +523,16 @@ export function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
           }
           dropAreaEnd = afterBounds.begin;
         } else {
-          afterBounds = { begin: layout.getContainerRectangles().rect.end };
-          dropAreaEnd = layout.getContainerRectangles().rect.end - layout.getContainerRectangles().rect.begin;
+          // Past the last item, so the drop area runs to the end of the container.
+          //
+          // This used to read `.end` and `.begin` off getContainerRectangles().rect, which is a raw
+          // DOM rect with no such keys — so both were undefined and dropAreaEnd was NaN. It also
+          // subtracted one from the other, producing a length where every other branch here assigns
+          // a viewport coordinate. getBeginEndOfContainer() is the orientation-mapped accessor, and
+          // returns a coordinate.
+          const containerEnd = layout.getBeginEndOfContainer().end;
+          afterBounds = { begin: containerEnd };
+          dropAreaEnd = containerEnd;
         }
 
         const shadowRectTopLeft = beforeBounds && afterBounds ? layout.getTopLeftOfElementBegin(beforeBounds.end) : null;
@@ -825,5 +833,11 @@ smoothDnD.isDragging = function () {
 smoothDnD.onDropComplete = function (handler) {
   return Mediator.onDropComplete(handler);
 }
+
+// Accessor rather than a plain property: the flag lives in the mediator, which owns the listener.
+Object.defineProperty(smoothDnD, 'cancelOnEscape', {
+  get: () => Mediator.getCancelOnEscape(),
+  set: (value: boolean) => Mediator.setCancelOnEscape(value),
+});
 
 export default smoothDnD;

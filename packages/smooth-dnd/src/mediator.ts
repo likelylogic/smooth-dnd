@@ -39,6 +39,31 @@ function addGrabListeners() {
   grabEvents.forEach(e => {
     window.document.addEventListener(e, onMouseDown as any, { passive: false } as any);
   });
+  // Capture phase, so an application's own Escape handling on document or window does not see the
+  // key first. Consumers who want to own Escape entirely set `cancelOnEscape` to false.
+  window.document.addEventListener('keydown', onKeyDown as any, true);
+}
+
+let cancelOnEscape = true;
+
+function setCancelOnEscape(value: boolean) {
+  cancelOnEscape = value !== false;
+}
+
+function getCancelOnEscape() {
+  return cancelOnEscape;
+}
+
+function onKeyDown(event: KeyboardEvent) {
+  if (!isDragging || !cancelOnEscape || dropAnimationStarted) {
+    return;
+  }
+  // 'Esc' is the legacy spelling still emitted by older Edge and IE.
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    event.preventDefault();
+    event.stopPropagation();
+    cancelDrag();
+  }
 }
 
 function addMoveListeners() {
@@ -971,6 +996,8 @@ function Mediator() {
       return isDragging;
     },
     onDropComplete: addDropCompleteHandler,
+    setCancelOnEscape,
+    getCancelOnEscape,
     cancelDrag,
   };
 }
