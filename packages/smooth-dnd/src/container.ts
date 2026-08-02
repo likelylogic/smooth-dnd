@@ -598,10 +598,51 @@ function fireDragEnterLeaveEvents({ getOptions }: ContainerProps) {
   };
 }
 
+/**
+ * Turn the insertion point into a rectangle the application can render.
+ *
+ * The whole point of `dropFeedback: 'indicator'` is that the consumer should not have to do this
+ * arithmetic itself — measuring items, bisecting them, and inventing sentinels for the ends of the
+ * list. `getShadowBeginEnd` has already worked out the gap along the layout axis; this spans it
+ * across the other axis and converts it into both coordinate spaces.
+ */
+export function computeDropIndicator({ element, layout, getOptions }: ContainerProps) {
+  return ({ dragResult: { addedIndex, shadowBeginEnd } }: DragInfo) => {
+    if (getOptions().dropFeedback !== 'indicator') {
+      return null;
+    }
+
+    if (addedIndex === null || !shadowBeginEnd || !shadowBeginEnd.dropArea) {
+      return { dropIndicator: null };
+    }
+
+    const rect = layout.getContainerRectangles().rect;
+    const { begin, end } = shadowBeginEnd.dropArea;
+    const size = Math.max(0, end - begin);
+
+    const viewport = getOptions().orientation === 'horizontal'
+      ? { left: begin, width: size, top: rect.top, height: rect.bottom - rect.top }
+      : { top: begin, height: size, left: rect.left, width: rect.right - rect.left };
+
+    return {
+      dropIndicator: {
+        viewport,
+        relative: {
+          top: viewport.top - rect.top,
+          left: viewport.left - rect.left,
+          width: viewport.width,
+          height: viewport.height,
+        },
+        container: element,
+      },
+    };
+  };
+}
+
 function fireOnDropReady({ getOptions }: ContainerProps) {
   let lastAddedIndex: number | null = null;
   const options = getOptions();
-  return ({ dragResult: { addedIndex, removedIndex }, draggableInfo: { payload, element } }: DragInfo) => {
+  return ({ dragResult: { addedIndex, removedIndex, dropIndicator }, draggableInfo: { payload, element } }: DragInfo) => {
     if (options.onDropReady && addedIndex !== null && lastAddedIndex !== addedIndex) {
       lastAddedIndex = addedIndex;
       let adjustedAddedIndex = addedIndex;
@@ -615,12 +656,38 @@ function fireOnDropReady({ getOptions }: ContainerProps) {
         removedIndex,
         payload,
         element: element ? element.firstElementChild as HTMLElement : undefined,
+        dropIndicator,
       });
     }
   };
 }
 
 function getDragHandler(params: ContainerProps) {
+  const feedback = params.getOptions().dropFeedback || 'gap';
+
+  // Target resolution and movement feedback are separate concerns; this is where they come apart.
+  // The chain below is the sorting one minus the two stages that move things — the stretcher and
+  // the sibling translations. Everything else stays, and getShadowBeginEnd in particular has to:
+  // its threshold band is what stops the insertion point flickering between slots, which an
+  // indicator needs every bit as much as an opening gap does.
+  if (feedback !== 'gap' && params.getOptions().behaviour !== 'drop-zone') {
+    return compose(params)(
+      getRemovedItem,
+      setRemovedItemVisibilty,
+      getPosition,
+      getElementSize,
+      handleTargetContainer,
+      invalidateShadowBeginEndIfNeeded,
+      getNextAddedIndex,
+      resetShadowAdjustment,
+      getShadowBeginEnd,
+      computeDropIndicator,
+      handleFirstInsertShadowAdjustment,
+      fireDragEnterLeaveEvents,
+      fireOnDropReady
+    );
+  }
+
   if (params.getOptions().behaviour === 'drop-zone') {
     // sorting is disabled in container, addedIndex will always be 0 if dropped in
     return compose(params)(

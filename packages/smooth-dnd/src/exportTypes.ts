@@ -33,6 +33,40 @@ export interface DropResult {
 	addedIndex: number | null;
 	payload?: any;
 	element?: HTMLElement;
+	/**
+	 * Where a drop indicator should be drawn, when the container is in `dropFeedback: 'indicator'`
+	 * mode. Null while the pointer is not over the container.
+	 */
+	dropIndicator?: DropIndicator | null;
+}
+
+/** A rectangle in the CSS sense — an origin and a size, ready to position an element with. */
+export interface Box {
+	top: number;
+	left: number;
+	width: number;
+	height: number;
+}
+
+/**
+ * Where the item would land, as a rectangle rather than an index.
+ *
+ * Spans the gap the item would occupy: along the layout axis it runs from the end of the preceding
+ * item to the start of the following one, and across the other axis it spans the container. Draw a
+ * line down the middle of it, or fill it — the shape is deliberately not opinionated.
+ *
+ * At the ends of a list, and in an empty container, it runs to the container's own bounds.
+ */
+export interface DropIndicator {
+	/** Viewport coordinates, as `getBoundingClientRect` would report them. */
+	viewport: Box;
+	/**
+	 * Relative to the container's border box. This is what an absolutely-positioned overlay inside
+	 * the container wants, and saves the caller doing the subtraction.
+	 */
+	relative: Box;
+	/** The container the indicator belongs to. */
+	container: HTMLElement;
 }
 
 export interface DropPlaceholderOptions {
@@ -97,6 +131,17 @@ export interface ContainerOptions {
 	 * closing over them at the call site. Not used by the engine for anything else.
 	 */
 	containerId?: string | number;
+	/**
+	 * How a pending drop is shown.
+	 *
+	 * - `gap` (default) — slide the siblings apart to open a space, the historical behaviour
+	 * - `indicator` — leave the siblings alone and report where the drop would land, as bounds on
+	 *   `onDropReady`, so the application can draw its own indicator
+	 * - `none` — leave the siblings alone and draw nothing
+	 *
+	 * Orthogonal to `behaviour`, which describes what a drop *means* rather than how it looks.
+	 */
+	dropFeedback?: 'gap' | 'indicator' | 'none';
 	groupName?: string; // if not defined => container will not interfere with other containers
 	orientation?: 'vertical' | 'horizontal';
 	dragHandleSelector?: string;

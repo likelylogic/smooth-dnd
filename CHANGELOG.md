@@ -11,6 +11,35 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.15.0
+
+### Added
+
+- **`dropFeedback` container option** — `'gap'` (default, unchanged), `'indicator'` or `'none'`.
+
+  `'gap'` slides the siblings apart, as always. The other two leave them alone: `'indicator'`
+  reports where the drop would land as bounds on `onDropReady`, so the application draws its own;
+  `'none'` shows nothing at all.
+
+  Orthogonal to `behaviour`, which describes what a drop *means* rather than how it looks.
+
+  ```ts
+  onDropReady({ addedIndex, dropIndicator }) {
+    // dropIndicator: { viewport, relative, container } — or null when not over this container
+  }
+  ```
+
+  The bounds are a resolved rectangle, not an axis pair, and come in both viewport and
+  container-relative space so an absolutely-positioned overlay needs no arithmetic. They span the
+  gap the item would occupy and run to the container's own bounds at the ends of a list and in an
+  empty container — the cases an application would otherwise handle with a sentinel.
+
+  Internally this is a third pipeline composition: the sorting chain minus the stretcher and the
+  sibling translations. Notably the threshold band is *kept* — it is what stops the insertion point
+  flickering between slots, and an indicator needs that as much as an opening gap does.
+
+---
+
 ## 0.14.0
 
 ### Added
