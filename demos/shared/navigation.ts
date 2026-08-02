@@ -101,6 +101,21 @@ export const navigation: DemoSection[] = [
     ],
   },
   {
+    title: 'Drop targeting',
+    pages: [
+      {
+        name: 'drop-indicator',
+        title: 'Drop indicator',
+        description: 'dropFeedback: indicator — nothing slides apart; the library reports bounds and the page draws its own line.',
+      },
+      {
+        name: 'tree',
+        title: 'Drop onto items',
+        description: 'dropOnItems — the middle of a node accepts a drop into it, the edges still insert between nodes.',
+      },
+    ],
+  },
+  {
     title: 'Nesting',
     pages: [
       {

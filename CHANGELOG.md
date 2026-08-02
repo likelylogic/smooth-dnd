@@ -11,6 +11,24 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.16.1
+
+### Fixed
+
+- **The Vue adapter silently dropped `containerId`, `dropFeedback` and `dropOnItems`.** It forwards a
+  fixed list of props to the engine, and the three added in 0.13.0–0.16.0 were never added to it —
+  so Vue turned them into fallthrough attributes on the root element and the options never arrived.
+  Nothing failed; the features simply did nothing. There is now a test asserting the adapter's
+  declared props and the engine's options agree, so the next one cannot go missing quietly.
+
+### Internal
+
+- Two demo pages, `drop-indicator` and `tree`, covering the features added in 0.15.0 and 0.16.0.
+  Both render their own feedback from the reported bounds rather than relying on anything built in,
+  which is the intended usage and a check that the API is sufficient on its own.
+
+---
+
 ## 0.16.0
 
 ### Added
