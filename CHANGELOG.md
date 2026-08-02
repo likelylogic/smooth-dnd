@@ -11,6 +11,42 @@ Nothing has been published yet, so no released version is being changed retroact
 
 ---
 
+## 0.17.0
+
+### Added
+
+- **`dropOnItems` now works with any `dropFeedback`, and combines naturally with `gap`** — which is
+  the pairing that matters:
+
+  - a target *between* items opens a gap, as always. Something has to make room.
+  - a target *into* an item does not. Nothing is making room, so no gap opens, and the item's bounds
+    are reported on `onDropReady` instead so the application can highlight it.
+
+  No new option: this is simply what `dropFeedback: 'gap'` plus `dropOnItems: true` now means. An
+  `into` target reports bounds in *every* feedback mode, because no mode can express one otherwise.
+
+### Fixed
+
+- **Drop targets are resolved against where the items rest**, never where an in-flight animation has
+  put them. This is what makes the above possible, and the earlier restriction unnecessary.
+
+  Reading the live layout let the feedback feed back into the decision that produced it: resolving
+  an `into` closes the gap, which shifts the items, which changes what is under the pointer, which
+  reopens it. The reported index would jump backwards mid-drag — `at5 → into4 → at4 → at5`.
+
+  The resting frame matches what is on screen minus any insertion gap, which differs by mode:
+  `gap` closes the slot the dragged item left, the others leave it visibly open. The dragged item
+  itself is excluded, since it is not in that layout at all — left in place it would occupy exactly
+  the span of the item shifting up into it, and the insertion search is a binary search that
+  requires ordered, non-overlapping bounds.
+
+  Insertion indices in that frame come from the midpoint test rather than the live path's
+  directional ±1 nudge, which overshoots by a whole slot when every item edge is a boundary.
+
+  Classic sorting — `dropOnItems` off — is untouched and still resolves against the live layout.
+
+---
+
 ## 0.16.4
 
 ### Fixed

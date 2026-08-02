@@ -1,12 +1,13 @@
 <template>
   <div class="simple-page">
     <p class="drop-hint">
-      The middle of a folder accepts a drop <em>into</em> it; the edges still insert between items.
-      Both are reported by the library — the highlight and the line are drawn by this page.
+      Default <code>gap</code> feedback, so dropping <em>between</em> nodes slides them apart as
+      usual. The middle of a node instead resolves to a drop <em>into</em> it — nothing has to make
+      room for that, so no gap opens and the library reports the node's bounds for this page to
+      highlight.
     </p>
 
     <Container
-      drop-feedback="indicator"
       :drop-on-items="true"
       :get-child-payload="index => nodes[index]"
       @drop-ready="onDropReady"
@@ -20,8 +21,8 @@
         </div>
       </Draggable>
 
+      <!-- only an into target needs drawing; a between target is shown by the gap itself -->
       <div v-if="indicator && kind === 'into'" class="drop-into" :style="boxStyle" />
-      <div v-else-if="indicator" class="drop-line" :style="lineStyle" />
     </Container>
 
     <dl class="drop-readout">
