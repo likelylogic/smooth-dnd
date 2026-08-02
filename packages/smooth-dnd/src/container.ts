@@ -503,7 +503,13 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
         let dropAreaEnd = 0;
         let afterBounds = null;
         let beforeBounds = null;
-        if (beforeIndex === removedIndex) {
+        // Skipping the dragged item is right under `gap`, where it has been translated out of the
+        // way and its slot no longer exists. Under the stationary modes it has not moved: the slot
+        // is still there, visibly empty, and its two edges are legitimate — and adjacent —
+        // insertion boundaries. Skipping it there stretches the hysteresis band across two slots,
+        // so the band swallows the whole hole and whichever edge you approach from is the only one
+        // you can ever reach.
+        if (!stationary && beforeIndex === removedIndex) {
           beforeIndex--;
         }
         if (beforeIndex > -1) {
@@ -525,7 +531,7 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
 
         let end = Number.MAX_SAFE_INTEGER;
         let afterIndex = addedIndex;
-        if (afterIndex === removedIndex) {
+        if (!stationary && afterIndex === removedIndex) {
           afterIndex++;
         }
         if (afterIndex < draggables.length) {

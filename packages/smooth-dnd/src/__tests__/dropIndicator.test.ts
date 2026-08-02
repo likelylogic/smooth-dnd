@@ -309,6 +309,42 @@ describe('dropFeedback: indicator', () => {
     expect(last.relative.top).toBeLessThanOrEqual(150) // the end of the last item, not of the container
   })
 
+  it('reaches the same boundaries dragging up as dragging down', async () => {
+    // The neighbour lookup skips the dragged item, which is right under `gap` — it has been
+    // translated away and its slot no longer exists. It has not moved in this mode, so skipping it
+    // made the hysteresis band span two slots: the band swallowed the vacated slot whole, and
+    // whichever of its two edges you approached from was the only one you could ever reach.
+    // Sweeping down reported 1,2,4 and sweeping up reported 5,4,3,1 — each missing an edge.
+    async function sweep (from: number, to: number, step: number) {
+      const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+      const tops: number[] = []
+      const instance = mount(element, {
+        dropFeedback: 'indicator',
+        getChildPayload: (i: number) => ({ id: i }),
+        onDropReady: (result: DropResult) => tops.push(result.dropIndicator!.relative.top),
+      }, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+
+      // drag the middle item, so the vacated slot has neighbours on both sides
+      const drag = await startDrag(element, 2)
+      for (let y = from; step > 0 ? y <= to : y >= to; y += step) {
+        await drag.moveTo(0, y)
+      }
+      await drag.drop()
+      instance.dispose()
+      return new Set(tops)
+    }
+
+    // kept clear of both ends of the list: the first frame of a sweep resolves with no hysteresis
+    // history, so starting on an extreme boundary would report one the other direction never sees
+    const down = await sweep(-60, 60, 10)
+    const up = await sweep(60, -60, -10)
+
+    expect([...down].sort((a, b) => a - b)).toEqual([...up].sort((a, b) => a - b))
+    // both edges of the slot the item vacated — it spans 100..150 — must be reachable either way
+    expect(down.has(100) && down.has(150)).toBe(true)
+    expect(up.has(100) && up.has(150)).toBe(true)
+  })
+
   it('does not add a placeholder element to the container', async () => {
     const element = makeContainer(4, { containerRect: RECT, itemSize: 50 })
     mount(element, {
