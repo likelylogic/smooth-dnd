@@ -3,7 +3,8 @@
     <div
       v-for="(occupied, index) in zones"
       :key="index"
-      :class="['drop-zone-container', classes[index]]"
+      class="drop-zone-container drop-target"
+      :class="{ 'is-active': active[index] }"
     >
       <Container
         style="height: 100%"
@@ -29,7 +30,7 @@ import { Container, Draggable } from '@likelylogic/vue-smooth-dnd'
 import type { DragResult } from '@demo/shared'
 
 const zones = ref<number[]>([1, 0, 0, 0])
-const classes = ref<string[]>(['', '', '', ''])
+const active = ref<boolean[]>([false, false, false, false])
 
 function onDrop (containerIndex: number, dropResult: DragResult) {
   const { addedIndex, removedIndex } = dropResult
@@ -43,14 +44,14 @@ function onDrop (containerIndex: number, dropResult: DragResult) {
     }
   }
 
-  classes.value[containerIndex] = ''
+  active.value[containerIndex] = false
 }
 
 function dragEnter (index: number) {
-  classes.value[index] = 'hover'
+  active.value[index] = true
 }
 
 function dragLeave (index: number) {
-  classes.value[index] = ''
+  active.value[index] = false
 }
 </script>

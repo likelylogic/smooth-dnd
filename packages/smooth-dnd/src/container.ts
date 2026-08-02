@@ -81,7 +81,9 @@ function unwrapChildren(element: HTMLElement) {
   }
 }
 
-function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
+// Exported for tests. Not part of the package's public API — index.ts controls what ships,
+// and does not re-export from this module.
+export function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
   const find = (
     draggables: HTMLElement[],
     pos: number,
@@ -167,7 +169,12 @@ function handleDrop({ element, draggables, layout, getOptions }: ContainerProps)
           removedIndex,
           addedIndex: actualAddIndex,
           payload: draggableInfo.payload,
-          // droppedElement: draggableInfo.element.firstElementChild,
+          // The DOM drop handler needs the node when this container is receiving an item it did
+          // not own — it has no `removedIndex`, so nothing to move. Without this, any vanilla
+          // cross-container drop threw and the item was removed from the source but never added
+          // to the target. Framework adapters replace the handler entirely, which is why this
+          // only ever affected vanilla usage.
+          droppedElement: draggableInfo.element ? draggableInfo.element.firstElementChild : undefined,
         };
         dropHandler(dropHandlerParams, getOptions().onDrop);
       }
@@ -251,7 +258,8 @@ function handleTargetContainer({ element }: ContainerProps) {
   };
 }
 
-function getDragInsertionIndex({ draggables, layout }: ContainerProps) {
+// Exported for tests — see note on findDraggebleAtPos.
+export function getDragInsertionIndex({ draggables, layout }: ContainerProps) {
   const findDraggable = findDraggebleAtPos({ layout });
   return ({ dragResult: { shadowBeginEnd, pos } }: { dragResult: DragResult }) => {
     if (!shadowBeginEnd) {
@@ -436,7 +444,8 @@ function handleInsertionSizeChange({ element, draggables, layout, getOptions }: 
   };
 }
 
-function calculateTranslations({ draggables, layout }: ContainerProps) {
+// Exported for tests — see note on findDraggebleAtPos.
+export function calculateTranslations({ draggables, layout }: ContainerProps) {
   let prevAddedIndex: number | null = null;
   let prevRemovedIndex: number | null = null;
   return function ({ dragResult: { addedIndex, removedIndex, elementSize } }: { dragResult: DragResult }) {
@@ -465,7 +474,8 @@ function calculateTranslations({ draggables, layout }: ContainerProps) {
   };
 }
 
-function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
+// Exported for tests — see note on findDraggebleAtPos.
+export function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
   let prevAddedIndex: number | null = null;
   return ({ draggableInfo, dragResult }: DragInfo) => {
     const { addedIndex, removedIndex, elementSize, pos, shadowBeginEnd } = dragResult;
@@ -706,7 +716,17 @@ function Container(element: HTMLElement): (options?: ContainerOptions) => IConta
 
     function dispose(container: IContainer) {
       scrollListener.dispose();
+      props.layout.dispose();
       unwrapChildren(container.element);
+
+      // Undo everything setup applied to the element. Leaving the container class behind is not
+      // cosmetic: getParent() walks ancestors looking for it during mousedown, so a disposed-but-
+      // still-mounted element would keep advertising a container that is no longer registered.
+      removeClass(container.element, containerClass);
+      if (getOptions().orientation) {
+        removeClass(container.element, getOptions().orientation!);
+      }
+      delete (container.element as ElementX)[containerInstance];
     }
 
     function setOptions(options: ContainerOptions, merge = true) {

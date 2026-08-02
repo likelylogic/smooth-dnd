@@ -10,7 +10,7 @@ type Zone = 0 | 1
  */
 export default function DropZone () {
   const [zones, setZones] = useState<Zone[]>([1, 0, 0, 0])
-  const [classes, setClasses] = useState<string[]>(['', '', '', ''])
+  const [active, setActive] = useState<boolean[]>([false, false, false, false])
 
   const onDrop = useCallback((containerIndex: number, dropResult: DropResult) => {
     const { addedIndex, removedIndex } = dropResult
@@ -28,17 +28,17 @@ export default function DropZone () {
       })
     }
 
-    setClasses(classes => {
-      const next = [...classes]
-      next[containerIndex] = ''
+    setActive(active => {
+      const next = [...active]
+      next[containerIndex] = false
       return next
     })
   }, [])
 
   const setHover = useCallback((index: number, hover: boolean) => {
-    setClasses(classes => {
-      const next = [...classes]
-      next[index] = hover ? 'hover' : ''
+    setActive(active => {
+      const next = [...active]
+      next[index] = hover
       return next
     })
   }, [])
@@ -46,7 +46,7 @@ export default function DropZone () {
   return (
     <div className="drop-zone">
       {zones.map((p, i) => (
-        <div key={i} className={`drop-zone-container ${classes[i]}`}>
+        <div key={i} className={`drop-zone-container drop-target ${active[i] ? 'is-active' : ''}`}>
           <Container
             style={{ height: '100%' }}
             groupName="1"

@@ -141,4 +141,6 @@ export interface LayoutManager {
   invalidateRects: () => void;
   getPosition: (position: Position) => Rect;
   setBegin: (style: CSSStyleDeclaration, value: string) => void;
+  /** Release the window listener and pending timer this layout registered. */
+  dispose: () => void;
 }

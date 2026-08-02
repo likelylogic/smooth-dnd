@@ -63,13 +63,23 @@ export default function layoutManager(containerElement: ElementX, orientation: O
 		translation: 0
 	};
 
-	window.addEventListener('resize', function () {
+	const onResize = function () {
 		invalidateContainerRectangles(containerElement);
-	});
+	};
 
-	setTimeout(() => {
+	window.addEventListener('resize', onResize);
+
+	const initialInvalidateTimer = setTimeout(() => {
 		invalidate();
 	}, 10);
+
+	// Containers are created and destroyed constantly by the framework adapters, so everything
+	// registered above has to be releasable — otherwise each one leaks a closure holding its
+	// element, and resize cost grows with every container ever created.
+	function dispose() {
+		clearTimeout(initialInvalidateTimer);
+		window.removeEventListener('resize', onResize);
+	}
 
 	function invalidate() {
 		invalidateContainerRectangles(containerElement);
@@ -256,5 +266,6 @@ export default function layoutManager(containerElement: ElementX, orientation: O
 		invalidateRects,
 		getPosition,
 		setBegin,
+		dispose,
 	};
 }

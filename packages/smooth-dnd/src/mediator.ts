@@ -65,16 +65,31 @@ function removeReleaseListeners() {
   });
 }
 
+/**
+ * Where the ghost lives for the duration of a drag.
+ *
+ * The body, unless the consumer says otherwise. The ghost is `position: fixed` and positioned in
+ * viewport coordinates, which only holds while nothing between it and the viewport establishes a
+ * containing block. `transform` does exactly that — it makes a fixed element resolve against that
+ * ancestor instead, and become clippable by its `overflow`.
+ *
+ * Parenting the ghost inside its container (as this used to) walks straight into both, because the
+ * library itself puts `transform` on wrappers during a drag and `styles.ts` gives every vertical
+ * wrapper `overflow: hidden`. In a nested container that meant the ghost was silently offset and
+ * then clipped out of existence; a consumer transform on an ancestor — a `:hover` scale, say — did
+ * the same thing to a flat one.
+ *
+ * The trade-off is that a ghost at the body no longer inherits container-scoped CSS. Class-based
+ * styling still applies (the clone keeps its classes and scoped-style attributes); only inherited
+ * properties like `font` or `color` set on an ancestor are lost. `getGhostParent` is the escape
+ * hatch for anyone who needs the old behaviour.
+ */
 function getGhostParent() {
   if (draggableInfo && draggableInfo.ghostParent) {
     return draggableInfo.ghostParent;
   }
 
-  if (grabbedElement) {
-    return grabbedElement.parentElement || window.document.body;
-  } else {
-    return window.document.body;
-  }
+  return window.document.body;
 }
 
 function getGhostElement(wrapperElement: HTMLElement, { x, y }: Position, container: IContainer, cursor: string): GhostInfo {
@@ -155,11 +170,52 @@ function getDraggableInfo(draggableElement: HTMLElement): DraggableInfo {
   };
 }
 
+/**
+ * Run `callback` once the element's transition finishes, or once `duration` has elapsed —
+ * whichever happens first.
+ *
+ * Neither signal is sufficient alone. `transitionend` never arrives if the element is already at
+ * its target position, if a consumer's CSS has overridden the transition away, or while the tab is
+ * backgrounded and transitions are paused. A bare timer, meanwhile, is a guess that desyncs the
+ * moment anyone restyles the ghost.
+ */
+function afterTransition(element: HTMLElement, duration: number, callback: () => void) {
+  let finished = false;
+  let timer: any = null;
+
+  function finish() {
+    if (finished) {
+      return;
+    }
+    finished = true;
+    clearTimeout(timer);
+    element.removeEventListener('transitionend', onTransitionEnd);
+    callback();
+  }
+
+  function onTransitionEnd(event: Event) {
+    // `all` transitions emit one event per animated property; only the first needs to win, and
+    // events bubbling up from cloned children are not ours.
+    if (event.target === element) {
+      finish();
+    }
+  }
+
+  element.addEventListener('transitionend', onTransitionEnd);
+  // translateGhost applies the transform on the next frame, so allow a little past `duration`
+  timer = setTimeout(finish, duration + 50);
+}
+
 function handleDropAnimation(callback: Function) {
   function endDrop() {
-    Utils.removeClass(ghostInfo.ghost, 'animated');
-    ghostInfo!.ghost.style.transitionDuration = null!;
-    getGhostParent().removeChild(ghostInfo.ghost);
+    if (ghostInfo && ghostInfo.ghost) {
+      Utils.removeClass(ghostInfo.ghost, 'animated');
+      ghostInfo.ghost.style.removeProperty('transition-duration');
+      // `remove()` rather than `getGhostParent().removeChild()`: the ghost parent is recomputed at
+      // teardown time and falls back to document.body, so if the source item was unmounted
+      // mid-drag the computed parent is no longer the ghost's actual parent and removeChild throws.
+      ghostInfo.ghost.remove();
+    }
     callback();
   }
 
@@ -172,9 +228,7 @@ function handleDropAnimation(callback: Function) {
     ghostInfo.topLeft.x = left;
     ghostInfo.topLeft.y = top;
     translateGhost(duration);
-    setTimeout(function () {
-      endDrop();
-    }, duration + 20);
+    afterTransition(ghostInfo.ghost, duration, endDrop);
   }
 
   function shouldAnimateDrop(options: ContainerOptions) {
@@ -186,12 +240,7 @@ function handleDropAnimation(callback: Function) {
   function disappearAnimation(duration: number, clb: Function) {
     Utils.addClass(ghostInfo.ghost, 'animated');
     translateGhost(duration, 0.9, true);
-    // ghostInfo.ghost.style.transitionDuration = duration + 'ms';
-    // ghostInfo.ghost.style.opacity = '0';
-    // ghostInfo.ghost.style.transform = 'scale(0.90)';
-    setTimeout(function () {
-      clb();
-    }, duration + 20);
+    afterTransition(ghostInfo.ghost, duration, clb as () => void);
   }
 
   if (draggableInfo.targetElement) {
@@ -336,6 +385,15 @@ function onMouseDown(event: MouseEvent & TouchEvent) {
     if (grabbedElement) {
       const containerElement = Utils.getParent(grabbedElement, '.' + constants.containerClass);
       const container = containers.filter(p => p.element === containerElement)[0];
+
+      // A wrapper can outlive its container — disposed but still mounted, or hand-written markup
+      // that happens to carry the class. Without this guard the lookup below throws on every
+      // subsequent mousedown in that subtree.
+      if (!container) {
+        grabbedElement = null;
+        return;
+      }
+
       const dragHandleSelector = container.getOptions().dragHandleSelector;
       const nonDragAreaSelector = container.getOptions().nonDragAreaSelector;
 
@@ -475,25 +533,70 @@ function onMouseUp() {
     containerRectableWatcher.stop();
     handleMissedDragFrame();
     dropAnimationStarted = true;
-    handleDropAnimation(() => {
-      isDragging = false; // 
+    try {
+      handleDropAnimation(completeDrop);
+    } catch (error) {
+      // The animation could not even be scheduled, so completeDrop will never run. Tear down here
+      // instead — otherwise isDragging stays true and every later grab is silently rejected.
+      isDragging = false;
+      resetDragState();
+      throw error;
+    }
+  }
+}
+
+function resetDragState() {
+  dragListeningContainers = null!;
+  grabbedElement = null;
+  ghostInfo = null!;
+  draggableInfo = null!;
+  sourceContainerLockAxis = null;
+  handleDrag = null!;
+  dropAnimationStarted = false;
+}
+
+/**
+ * Finish a drag: notify every listening container, then release all drag state.
+ *
+ * Consumer callbacks run in here, so they are individually contained. A container that throws must
+ * not stop the others — each one's `handleDrop` is what restores its draggables' translations and
+ * visibility, so skipping the rest would leave the UI visibly broken. Errors are re-thrown after
+ * the teardown so they stay visible rather than being swallowed.
+ */
+function completeDrop() {
+  let firstError: unknown = null;
+
+  function record(error: unknown) {
+    if (firstError === null) {
+      firstError = error;
+    }
+  }
+
+  try {
+    isDragging = false;
+
+    try {
       fireOnDragStartEnd(false);
-      const containers = dragListeningContainers || [];
+    } catch (error) {
+      record(error);
+    }
 
-      let containerToCallDrop = containers.shift();
-      while (containerToCallDrop !== undefined) {
+    const pendingContainers = dragListeningContainers || [];
+    let containerToCallDrop = pendingContainers.shift();
+    while (containerToCallDrop !== undefined) {
+      try {
         containerToCallDrop.handleDrop(draggableInfo);
-        containerToCallDrop = containers.shift();
+      } catch (error) {
+        record(error);
       }
+      containerToCallDrop = pendingContainers.shift();
+    }
+  } finally {
+    resetDragState();
+  }
 
-      dragListeningContainers = null!;
-      grabbedElement = null;
-      ghostInfo = null!;
-      draggableInfo = null!;
-      sourceContainerLockAxis = null;
-      handleDrag = null!;
-      dropAnimationStarted = false;
-    });
+  if (firstError !== null) {
+    throw firstError;
   }
 }
 
@@ -503,11 +606,16 @@ function getPointerEvent(e: TouchEvent & MouseEvent): MouseEvent & TouchEvent {
   return e.touches ? (e.touches[0] as any) : (e as any);
 }
 
-function handleDragImmediate(draggableInfo: DraggableInfo, dragListeningContainers: IContainer[]) {
+// Exported for tests. Not part of the package's public API — index.ts ships the default export
+// below and does not re-export from this module.
+export function handleDragImmediate(draggableInfo: DraggableInfo, dragListeningContainers: IContainer[]) {
   let containerBoxChanged = false;
   dragListeningContainers.forEach((p: IContainer) => {
-    const dragResult = p.handleDrag(draggableInfo)!;
-    containerBoxChanged = !!dragResult.containerBoxChanged || false;
+    const dragResult = p.handleDrag(draggableInfo);
+    if (!dragResult) return;
+    // Accumulate: assigning here would let a later container clear a change reported by an
+    // earlier one, skipping the re-measure and leaving every container on stale rects.
+    containerBoxChanged = containerBoxChanged || !!dragResult.containerBoxChanged;
     dragResult.containerBoxChanged = false;
   });
 
@@ -666,7 +774,14 @@ function registerContainer(container: IContainer) {
 }
 
 function unregisterContainer(container: IContainer) {
-  containers.splice(containers.indexOf(container), 1);
+  const index = containers.indexOf(container);
+
+  // splice(-1, 1) would remove the *last* registered container — an unrelated, live one.
+  if (index === -1) {
+    return;
+  }
+
+  containers.splice(index, 1);
 
   if (isDragging && draggableInfo) {
     if (draggableInfo.container === container) {

@@ -19,36 +19,148 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Drop targets
+ *
+ * Shared by drop-zone and drop-out, so the two read as the same idea: a
+ * dashed outline means "this will accept a drop", and it fills in when the
+ * pointer is actually over it.
+ * -------------------------------------------------------------------------- */
+
+.drop-target {
+    border: 2px dashed rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-target.is-active {
+    border-color: #3d6ea8;
+    background-color: #eef4fb;
+}
+
+/* the section labels used across these pages */
+.drop-label {
+    margin: 0 0 10px;
+    color: #556;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* --------------------------------------------------------------------------
  * drop-zone
  * -------------------------------------------------------------------------- */
 
 .drop-zone {
     display: flex;
     flex-wrap: wrap;
+    gap: 20px;
+    margin: 50px;
 }
 
 .drop-zone-container {
-    transition: background-color 0.2s ease;
-    width: 100px;
-    height: 100px;
-    border: 5px solid #348;
-    background-color: #80bdff;
-    border-radius: 100px;
-    margin: 20px;
-}
-
-.drop-zone-container.hover {
-    background-color: yellow;
-    transform: scale(1.02);
+    box-sizing: border-box;
+    width: 180px;
+    height: 86px;
+    padding: 16px;
 }
 
 .drop-zone-draggable {
-    width: 80px;
-    height: 80px;
-    border: 2px solid #348;
-    background-color: cornflowerblue;
-    border-radius: 100px;
-    margin: 10px;
+    height: 50px;
+    line-height: 50px;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 4px;
+    cursor: default;
+    user-select: none;
+}
+
+/* --------------------------------------------------------------------------
+ * drop-out
+ * -------------------------------------------------------------------------- */
+
+.drop-out {
+    display: flex;
+    gap: 50px;
+    margin: 30px;
+    padding: 30px;
+    /* deliberately taller than its content, so there is empty space to drop into */
+    min-height: 70vh;
+}
+
+.drop-out__lists {
+    display: flex;
+    gap: 30px;
+}
+
+.drop-out__list {
+    width: 220px;
+}
+
+/*
+ * The real drop area is the smooth-dnd container element, not the wrapper div
+ * around it — so outline that directly. Seeing both list bounds is the point
+ * of the page: the drop routes to whichever container the pointer is over,
+ * and to the surround only once it is over neither.
+ */
+.drop-out__list .smooth-dnd-container {
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #eef0f2;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-out__list.is-active .smooth-dnd-container {
+    border-color: #3d6ea8;
+    background-color: #dfe9f4;
+}
+
+.drop-out__aside {
+    flex: 1;
+    min-width: 0;
+}
+
+.drop-label + .drop-label,
+.drop-out__detached + .drop-label,
+.drop-out__hint + .drop-label {
+    margin-top: 30px;
+}
+
+.drop-out__reset {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border: 1px solid #ccd;
+    border-radius: 4px;
+    background: #fff;
+    color: #556;
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.drop-out__hint {
+    margin: 0;
+    color: #889;
+    font-size: 13px;
+}
+
+.drop-out__detached {
+    margin: 0;
+    padding-left: 20px;
+    color: #334;
+    font-size: 13px;
+}
+
+.drop-out__log {
+    margin: 0;
+    padding-left: 20px;
+    color: #778;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.7;
 }
 
 /* --------------------------------------------------------------------------
