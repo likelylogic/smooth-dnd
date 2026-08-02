@@ -198,6 +198,53 @@ describe('dropFeedback: indicator', () => {
     expect(seen[0].to.index).toBe(2)
   })
 
+  it('does not flicker between slots as the pointer sweeps across the list', async () => {
+    // The insertion index has to be stable under small movements. With `gap` feedback the siblings
+    // slide apart and the hysteresis band straddles a real gap; nothing moves in this mode, so the
+    // neighbours touch and that band collapses to zero width — leaving the index to re-resolve on
+    // every frame. It reported 1,2,1,2,1,2,3,2,3,… before the band was widened to the midpoints.
+    const element = makeContainer(6, { containerRect: RECT, itemSize: 50 })
+    const indices: number[] = []
+    mount(element, {
+      dropFeedback: 'indicator',
+      getChildPayload: (i: number) => ({ id: i }),
+      onDropReady: (result: DropResult) => indices.push(result.dropTarget!.index),
+    }, { containerRect: RECT, itemSize: 50 })
+
+    const drag = await startDrag(element, 0)
+    for (let y = 40; y <= 200; y += 8) {
+      await drag.moveTo(0, y)
+    }
+    await drag.drop()
+
+    expect(indices.length).toBeGreaterThan(1)
+    // sweeping one way must only ever move the insertion point one way
+    const sorted = [...indices].sort((a, b) => a - b)
+    expect(indices).toEqual(sorted)
+    // and each reported change should be a distinct slot, not a repeat
+    expect(new Set(indices).size).toBe(indices.length)
+  })
+
+  it('keeps the gap-mode hysteresis unchanged', async () => {
+    // The widened band applies only where nothing translates; gap mode keeps the original
+    // threshold logic, which is tuned around the gap the siblings open.
+    const element = makeContainer(6, { containerRect: RECT, itemSize: 50 })
+    const indices: number[] = []
+    mount(element, {
+      getChildPayload: (i: number) => ({ id: i }),
+      onDropReady: (result: DropResult) => indices.push(result.addedIndex!),
+    }, { containerRect: RECT, itemSize: 50 })
+
+    const drag = await startDrag(element, 0)
+    for (let y = 40; y <= 200; y += 8) {
+      await drag.moveTo(0, y)
+    }
+    await drag.drop()
+
+    const sorted = [...indices].sort((a, b) => a - b)
+    expect(indices).toEqual(sorted)
+  })
+
   it('does not add a placeholder element to the container', async () => {
     const element = makeContainer(4, { containerRect: RECT, itemSize: 50 })
     mount(element, {

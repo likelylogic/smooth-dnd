@@ -481,10 +481,19 @@ export function calculateTranslations({ draggables, layout }: ContainerProps) {
 }
 
 // Exported for tests — see note on findDraggebleAtPos.
-export function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
+export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerProps) {
   let prevAddedIndex: number | null = null;
   return ({ draggableInfo, dragResult }: DragInfo) => {
     const { addedIndex, removedIndex, elementSize, pos, shadowBeginEnd } = dragResult;
+
+    // With `gap` feedback the siblings slide apart, so the band below straddles a real gap the
+    // width of the dragged item. Nothing moves in the other modes, which leaves the neighbours
+    // touching and collapses that band to zero width — the insertion index would then re-resolve
+    // on every frame and flicker between slots. So widen it to the neighbours' midpoints instead:
+    // one item wide, centred on the boundary, which is the natural hysteresis for a midpoint-based
+    // insertion and cannot oscillate.
+    const stationary = (getOptions().dropFeedback || 'gap') !== 'gap';
+
     if (pos !== null) {
       if (addedIndex !== null && (draggableInfo.invalidateShadow || addedIndex !== prevAddedIndex)) {
         // if (prevAddedIndex) prevAddedIndex = addedIndex;
@@ -500,7 +509,9 @@ export function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
         if (beforeIndex > -1) {
           const beforeSize = layout.getSize(draggables[beforeIndex]);
           beforeBounds = layout.getBeginEnd(draggables[beforeIndex]);
-          if (elementSize < beforeSize) {
+          if (stationary) {
+            begin = (beforeBounds.begin + beforeBounds.end) / 2;
+          } else if (elementSize < beforeSize) {
             const threshold = (beforeSize - elementSize) / 2;
             begin = beforeBounds.end - threshold;
           } else {
@@ -521,7 +532,9 @@ export function getShadowBeginEnd({ draggables, layout }: ContainerProps) {
           const afterSize = layout.getSize(draggables[afterIndex]);
           afterBounds = layout.getBeginEnd(draggables[afterIndex]);
 
-          if (elementSize < afterSize) {
+          if (stationary) {
+            end = (afterBounds.begin + afterBounds.end) / 2;
+          } else if (elementSize < afterSize) {
             const threshold = (afterSize - elementSize) / 2;
             end = afterBounds.begin + threshold;
           } else {

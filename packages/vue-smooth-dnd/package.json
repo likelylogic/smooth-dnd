@@ -1,6 +1,6 @@
 {
   "name": "@likelylogic/vue-smooth-dnd",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Vue 3 wrappers for smooth-dnd",
   "type": "module",
   "main": "./dist/vue-smooth-dnd.umd.cjs",
