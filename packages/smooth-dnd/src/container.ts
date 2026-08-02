@@ -89,7 +89,13 @@ function unwrapChildren(element: HTMLElement) {
 
 // Exported for tests. Not part of the package's public API — index.ts controls what ships,
 // and does not re-export from this module.
-export function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
+export function findDraggebleAtPos(
+  { layout }: { layout: LayoutManager },
+  boundsOf?: (element: HTMLElement, index: number) => { begin: number; end: number },
+) {
+  const getBounds = (draggables: HTMLElement[], index: number) => (
+    boundsOf ? boundsOf(draggables[index], index) : layout.getBeginEnd(draggables[index])
+  );
   const find = (
     draggables: HTMLElement[],
     pos: number,
@@ -102,7 +108,7 @@ export function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
     }
     // binary serach draggable
     if (startIndex === endIndex) {
-      let { begin, end } = layout.getBeginEnd(draggables[startIndex]);
+      let { begin, end } = getBounds(draggables, startIndex);
       // mouse pos is inside draggable
       // now decide which index to return
       // if (pos > begin && pos <= end) {
@@ -116,7 +122,7 @@ export function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
       // }
     } else {
       const middleIndex = Math.floor((endIndex + startIndex) / 2);
-      const { begin, end } = layout.getBeginEnd(draggables[middleIndex]);
+      const { begin, end } = getBounds(draggables, middleIndex);
       if (pos < begin) {
         return find(draggables, pos, startIndex, middleIndex - 1, withRespectToMiddlePoints);
       } else if (pos > end) {
@@ -133,6 +139,43 @@ export function findDraggebleAtPos({ layout }: { layout: LayoutManager }) {
 
   return (draggables: HTMLElement[], pos: number, withRespectToMiddlePoints = false) => {
     return find(draggables, pos, 0, draggables.length - 1, withRespectToMiddlePoints);
+  };
+}
+
+/**
+ * Where the items sit once the dragged one is lifted out, with nothing else moved.
+ *
+ * This is the frame every resolution decision should be made in. The live layout is not usable for
+ * the purpose: opening a gap moves the very items the decision is measured against, so reading it
+ * lets the feedback feed back into what produced it. Resolving an `into` closes the gap, which
+ * shifts the items, which changes what is under the pointer, which reopens it.
+ *
+ * The removal shift is safe to include because it is fixed for the whole drag.
+ */
+export function restingBoundsFor({ draggables, layout, getOptions }: ContainerProps) {
+  return (index: number, removedIndex: number | null, elementSize: number) => {
+    const element = draggables[index] as ElementX;
+    const translated = element[translationValue] || 0;
+    const { begin, end } = layout.getBeginEnd(element);
+    const restBegin = begin - translated;
+    const restEnd = end - translated;
+
+    // This has to match what is on screen, minus any insertion gap — otherwise the pointer
+    // resolves against a layout the user cannot see. The modes differ in one respect: `gap` closes
+    // the slot the dragged item left, while the others leave it visibly open.
+    if ((getOptions().dropFeedback || 'gap') !== 'gap') {
+      return { begin: restBegin, end: restEnd };
+    }
+
+    // Closed up, so the dragged item is not in this layout at all. Collapsing it to a zero-width
+    // point keeps the sequence sorted and non-overlapping, which the insertion search depends on:
+    // left at full width it would occupy exactly the span of the item shifting up into its place.
+    if (index === removedIndex) {
+      return { begin: restBegin, end: restBegin };
+    }
+
+    const removal = removedIndex !== null && removedIndex < index ? -(elementSize || 0) : 0;
+    return { begin: restBegin + removal, end: restEnd + removal };
   };
 }
 
@@ -265,11 +308,34 @@ function handleTargetContainer({ element }: ContainerProps) {
 }
 
 // Exported for tests — see note on findDraggebleAtPos.
-export function getDragInsertionIndex({ draggables, layout }: ContainerProps) {
-  const findDraggable = findDraggebleAtPos({ layout });
-  return ({ dragResult: { shadowBeginEnd, pos } }: { dragResult: DragResult }) => {
+export function getDragInsertionIndex(params: ContainerProps) {
+  const { draggables, layout, getOptions } = params;
+  const resting = restingBoundsFor(params);
+  const findLive = findDraggebleAtPos({ layout });
+
+  return ({ dragResult: { shadowBeginEnd, pos, removedIndex, elementSize } }: { dragResult: DragResult }) => {
+    // Once `into` targets are in play, resolve in the frame they are resolved in — where the items
+    // rest — or the two disagree every time a gap opens or shuts and the reported index jumps.
+    if (getOptions().dropOnItems) {
+      const findResting = findDraggebleAtPos(
+        { layout },
+        (_element, index) => resting(index, removedIndex, elementSize),
+      );
+
+      // Hold the current index while the pointer is still inside the band. That is the whole of
+      // the hysteresis; the index itself comes straight from which half of an item the pointer is
+      // in. The live path below instead nudges by ±1 depending on which way the band was left,
+      // which overshoots here: the resting frame has a boundary at every item edge, so "past the
+      // band, therefore after the item under the pointer" lands a whole slot too far.
+      if (shadowBeginEnd && pos >= shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment && pos <= shadowBeginEnd.end) {
+        return null;
+      }
+
+      return findResting(draggables, pos, true);
+    }
+
     if (!shadowBeginEnd) {
-      const index = findDraggable(draggables, pos, true);
+      const index = findLive(draggables, pos, true);
       return index !== null ? index : draggables.length;
     } else {
       if (shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment <= pos && shadowBeginEnd.end >= pos) {
@@ -279,9 +345,9 @@ export function getDragInsertionIndex({ draggables, layout }: ContainerProps) {
     }
 
     if (pos < shadowBeginEnd.begin + shadowBeginEnd.beginAdjustment) {
-      return findDraggable(draggables, pos);
+      return findLive(draggables, pos);
     } else if (pos > shadowBeginEnd.end) {
-      return findDraggable(draggables, pos)! + 1;
+      return findLive(draggables, pos)! + 1;
     } else {
       return draggables.length;
     }
@@ -481,7 +547,9 @@ export function calculateTranslations({ draggables, layout }: ContainerProps) {
 }
 
 // Exported for tests — see note on findDraggebleAtPos.
-export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerProps) {
+export function getShadowBeginEnd(params: ContainerProps) {
+  const { draggables, layout, getOptions } = params;
+  const resting = restingBoundsFor(params);
   let prevAddedIndex: number | null = null;
   return ({ draggableInfo, dragResult }: DragInfo) => {
     const { addedIndex, removedIndex, elementSize, pos, shadowBeginEnd } = dragResult;
@@ -492,7 +560,21 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
     // on every frame and flicker between slots. So widen it to the neighbours' midpoints instead:
     // one item wide, centred on the boundary, which is the natural hysteresis for a midpoint-based
     // insertion and cannot oscillate.
-    const stationary = (getOptions().dropFeedback || 'gap') !== 'gap';
+    // Two distinct questions, and conflating them is what produced the last three bugs here.
+    //
+    // `restingFrame` — should the *hysteresis band* be measured where the items rest? Yes whenever
+    // no gap is opening (nothing to straddle) and whenever `into` targets are in play (they are
+    // resolved in that frame, so the band has to agree).
+    //
+    // `boundaryArea` — should the reported *drop area* collapse to a line? Yes only when nothing is
+    // opening. Under `gap` the area describes the space being made, and the placeholder fills it.
+    const opensGap = (getOptions().dropFeedback || 'gap') === 'gap';
+    const restingFrame = !opensGap || !!getOptions().dropOnItems;
+    const boundaryArea = !opensGap;
+    const stationary = restingFrame;
+    const boundsOf = (index: number) => (
+      restingFrame ? resting(index, removedIndex, elementSize) : layout.getBeginEnd(draggables[index])
+    );
 
     if (pos !== null) {
       if (addedIndex !== null && (draggableInfo.invalidateShadow || addedIndex !== prevAddedIndex)) {
@@ -514,7 +596,7 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
         }
         if (beforeIndex > -1) {
           const beforeSize = layout.getSize(draggables[beforeIndex]);
-          beforeBounds = layout.getBeginEnd(draggables[beforeIndex]);
+          beforeBounds = boundsOf(beforeIndex);
           if (stationary) {
             begin = (beforeBounds.begin + beforeBounds.end) / 2;
           } else if (elementSize < beforeSize) {
@@ -536,7 +618,7 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
         }
         if (afterIndex < draggables.length) {
           const afterSize = layout.getSize(draggables[afterIndex]);
-          afterBounds = layout.getBeginEnd(draggables[afterIndex]);
+          afterBounds = boundsOf(afterIndex);
 
           if (stationary) {
             end = (afterBounds.begin + afterBounds.end) / 2;
@@ -560,7 +642,7 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
           dropAreaEnd = containerEnd;
         }
 
-        if (stationary) {
+        if (boundaryArea) {
           // For an indicator the drop area is a *boundary*, not a gap. Nothing is opening, so
           // reporting a span leaves the caller drawing a line through the middle of something.
           //
@@ -573,7 +655,7 @@ export function getShadowBeginEnd({ draggables, layout, getOptions }: ContainerP
           // Note this deliberately does *not* skip the removed item: the boundary either side of
           // the hole is exactly where the indicator belongs.
           const boundary = addedIndex > 0
-            ? layout.getBeginEnd(draggables[addedIndex - 1]).end
+            ? boundsOf(addedIndex - 1).end
             : layout.getBeginEndOfContainer().begin;
           dropAreaBegin = boundary;
           dropAreaEnd = boundary;
@@ -653,50 +735,48 @@ function fireDragEnterLeaveEvents({ getOptions }: ContainerProps) {
  * An `into` target clears `addedIndex`, so nothing downstream opens a gap. There is nothing to make
  * room for — the item is going inside another one, not between two.
  */
-export function resolveDropOnItem({ draggables, layout, getOptions }: ContainerProps) {
-  const findDraggable = findDraggebleAtPos({ layout });
+export function resolveDropOnItem(params: ContainerProps) {
+  const { draggables, getOptions } = params;
+  const resting = restingBoundsFor(params);
   /** Fraction of an item at each end that still counts as "between", not "onto". */
   const edgeBand = 0.25;
 
-  return ({ dragResult: { pos, addedIndex, removedIndex } }: DragInfo) => {
-    // Requires a non-gap feedback mode, and not by accident. Once a gap opens, the layout has
-    // already moved to accommodate an *insertion*, so there is no longer an item under the pointer
-    // to drop into — resolving one anyway would make the two feedback states oscillate.
-    if (!getOptions().dropOnItems || (getOptions().dropFeedback || 'gap') === 'gap') {
-      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+  return ({ dragResult: { pos, addedIndex, removedIndex, elementSize } }: DragInfo) => {
+    const insertion = () => (
+      addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null }
+    );
+
+    if (!getOptions().dropOnItems) {
+      return insertion();
     }
 
     if (pos === null || draggables.length === 0) {
       return { dropTarget: null };
     }
 
-    const hitIndex = findDraggable(draggables, pos);
+    for (let index = 0; index < draggables.length; index++) {
+      // The dragged item is not part of the resting layout — it has been lifted out — and in any
+      // case cannot be dropped inside itself.
+      if (index === removedIndex) {
+        continue;
+      }
 
-    // The dragged item is still in the list and still occupies its slot — nothing has translated
-    // in this mode — but an item cannot be dropped inside itself.
-    if (hitIndex === removedIndex) {
-      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+      const { begin, end } = resting(index, removedIndex, elementSize);
+      const size = end - begin;
+      if (size <= 0 || pos < begin || pos >= end) {
+        continue;
+      }
+
+      const offset = (pos - begin) / size;
+      if (offset > edgeBand && offset < 1 - edgeBand) {
+        // No insertion index: nothing is being made room for, so no gap should open. Under `gap`
+        // feedback this is what makes the siblings settle back while an item is highlighted.
+        return { addedIndex: null, dropTarget: { kind: 'into' as const, index } };
+      }
+      break;
     }
 
-    if (hitIndex === null || hitIndex < 0 || hitIndex >= draggables.length) {
-      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
-    }
-
-    const { begin, end } = layout.getBeginEnd(draggables[hitIndex]);
-    const size = end - begin;
-    if (size <= 0) {
-      return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
-    }
-
-    const offset = (pos - begin) / size;
-    if (offset > edgeBand && offset < 1 - edgeBand) {
-      return {
-        addedIndex: null,
-        dropTarget: { kind: 'into' as const, index: hitIndex },
-      };
-    }
-
-    return addedIndex !== null ? { dropTarget: { kind: 'at' as const, index: addedIndex } } : { dropTarget: null };
+    return insertion();
   };
 }
 
@@ -710,14 +790,18 @@ export function resolveDropOnItem({ draggables, layout, getOptions }: ContainerP
  */
 export function computeDropIndicator({ element, draggables, layout, getOptions }: ContainerProps) {
   return ({ dragResult: { addedIndex, shadowBeginEnd, dropTarget } }: DragInfo) => {
-    if (getOptions().dropFeedback !== 'indicator') {
+    const intoTarget = !!dropTarget && dropTarget.kind === 'into';
+
+    // An `into` target is reported in every feedback mode, because no mode has a way of showing it
+    // otherwise — there is no gap to open, so without bounds the application has nothing to draw.
+    if (getOptions().dropFeedback !== 'indicator' && !intoTarget) {
       return null;
     }
 
     const rect = layout.getContainerRectangles().rect;
 
     // Dropping onto an item: outline the item, not a gap between two.
-    if (dropTarget && dropTarget.kind === 'into' && draggables[dropTarget.index]) {
+    if (intoTarget && dropTarget && draggables[dropTarget.index]) {
       const bounds = layout.getBeginEnd(draggables[dropTarget.index]);
       return { dropIndicator: buildIndicator(element, rect, bounds.begin, bounds.end - bounds.begin, getOptions()) };
     }
@@ -836,6 +920,9 @@ function getDragHandler(params: ContainerProps) {
       handleInsertionSizeChange,
       calculateTranslations,
       getShadowBeginEnd,
+      // Present here too: a gap cannot express an `into` target, so its bounds are the only way an
+      // application can show one. Returns nothing for ordinary insertions in this mode.
+      computeDropIndicator,
       drawDropPlaceholder,
       handleFirstInsertShadowAdjustment,
       fireDragEnterLeaveEvents,

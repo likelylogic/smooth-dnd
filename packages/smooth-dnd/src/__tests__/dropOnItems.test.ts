@@ -161,18 +161,56 @@ describe('dropOnItems', () => {
     expect(into.every(t => t!.index !== 0)).toBe(true)
   })
 
-  it('is ignored under gap feedback, where it cannot work', async () => {
-    // Not an arbitrary restriction: an open gap has already displaced the items, so there is no
-    // item under the pointer to resolve against, and the two feedback states would oscillate.
-    const element = makeContainer(4, LAYOUT)
+  it('combines with gap feedback: a gap for between, a highlight for into', async () => {
+    // The pairing that matters. Nothing has to make room for an item going *inside* another, so an
+    // into target closes the gap and reports the item's bounds instead — while ordinary insertions
+    // keep sliding the siblings apart.
+    const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
     const log = readyLog()
-    mount(element, { dropOnItems: true, dropFeedback: 'gap', getChildPayload: (i: number) => ({ id: i }), onDropReady: log.onDropReady })
+    mount(element, { dropOnItems: true, dropFeedback: 'gap', getChildPayload: (i: number) => ({ id: i }), onDropReady: log.onDropReady },
+      { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
 
-    const drag = await startDrag(element, 0)
-    await drag.moveTo(0, 120)
+    const drag = await startDrag(element, 2)
+    const kinds = new Set<string>()
+    for (let y = -60; y <= 120; y += 10) {
+      await drag.moveTo(0, y)
+      const last = log.seen[log.seen.length - 1]
+      if (last?.dropTarget) {
+        kinds.add(last.dropTarget.kind)
+      }
+    }
     await drag.drop()
 
-    expect(log.seen.every(r => r.dropTarget?.kind === 'at')).toBe(true)
+    // both kinds occur in the same drag, under the default feedback
+    expect([...kinds].sort()).toEqual(['at', 'into'])
+    // and an into target always reports bounds, since a gap cannot express it
+    const intoEntries = log.seen.filter(r => r.dropTarget?.kind === 'into')
+    expect(intoEntries.length).toBeGreaterThan(0)
+    expect(intoEntries.every(r => r.dropIndicator != null)).toBe(true)
+  })
+
+  it('reaches the same targets dragging up as dragging down, under gap feedback', async () => {
+    async function sweep (from: number, to: number, step: number) {
+      const element = makeContainer(6, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+      const seen: string[] = []
+      const instance = mount(element, {
+        dropOnItems: true,
+        getChildPayload: (i: number) => ({ id: i }),
+        onDropReady: (r: DropResult) => seen.push(`${r.dropTarget!.kind}${r.dropTarget!.index}`),
+      }, { containerRect: { top: 0, bottom: 500, left: 0, right: 200 }, itemSize: 50 })
+
+      const drag = await startDrag(element, 2)
+      for (let y = from; step > 0 ? y <= to : y >= to; y += step) {
+        await drag.moveTo(0, y)
+      }
+      await drag.drop()
+      instance.dispose()
+      return new Set(seen)
+    }
+
+    const down = await sweep(-50, 110, 10)
+    const up = await sweep(110, -50, -10)
+    expect([...down].sort()).toEqual([...up].sort())
   })
 })
 

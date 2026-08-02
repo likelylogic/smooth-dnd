@@ -29,8 +29,11 @@ function build (): Node[] {
 }
 
 /**
- * `dropOnItems` — the middle of a node accepts a drop *into* it, the edges still insert between
- * nodes. Both are reported; the highlight and the line are drawn by this page.
+ * `dropOnItems` under the default `gap` feedback.
+ *
+ * Dropping *between* nodes slides them apart as usual. The middle of a node instead resolves to a
+ * drop *into* it — nothing has to make room for that, so no gap opens and the library reports the
+ * node's bounds for this page to highlight.
  */
 export default function Tree () {
   const [nodes, setNodes] = useState<Node[]>(build)
@@ -85,7 +88,6 @@ export default function Tree () {
       </p>
 
       <Container
-        dropFeedback="indicator"
         dropOnItems
         getChildPayload={index => nodes[index]}
         onDropReady={onDropReady}
@@ -101,16 +103,11 @@ export default function Tree () {
           </Draggable>
         ))}
 
+        {/* only an into target needs drawing; a between target is shown by the gap itself */}
         {box && target?.kind === 'into' && (
           <div
             className="drop-into"
             style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
-          />
-        )}
-        {box && target?.kind !== 'into' && (
-          <div
-            className="drop-line"
-            style={{ top: box.top + box.height / 2, left: box.left, width: box.width }}
           />
         )}
       </Container>

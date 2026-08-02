@@ -111,7 +111,7 @@ export const navigation: DemoSection[] = [
       {
         name: 'tree',
         title: 'Drop onto items',
-        description: 'dropOnItems — the middle of a node accepts a drop into it, the edges still insert between nodes.',
+        description: 'dropOnItems with the default gap feedback — betweens slide the nodes apart, intos highlight the node instead.',
       },
     ],
   },
