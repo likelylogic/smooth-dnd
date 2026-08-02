@@ -18,6 +18,7 @@ import Copy from '../pages/copy'
 import DragClass from '../pages/drag-class'
 import DragDelay from '../pages/drag-delay'
 import DragHandle from '../pages/drag-handle'
+import DropOut from '../pages/drop-out'
 import DropZone from '../pages/drop-zone'
 import DynamicContainers from '../pages/dynamic-containers'
 import Events from '../pages/events'
@@ -46,6 +47,7 @@ export const pages: Record<string, ComponentType> = {
   'groups': Groups,
   'copy': Copy,
   'drop-zone': DropZone,
+  'drop-out': DropOut,
   'nested': Nested,
   'nested-group': NestedGroup,
   'lock-axis': LockAxis,

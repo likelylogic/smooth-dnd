@@ -16,6 +16,8 @@
  * rather than a silent wrong answer.
  */
 
+import smoothDnD from '../container'
+
 export interface Rect {
   left: number
   top: number
@@ -161,6 +163,21 @@ export function setOverflow (element: HTMLElement, value: string) {
 // Drag simulation
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * Return the engine to a clean slate between tests.
+ *
+ * The mediator's drag state is module-level, so a drag abandoned by a failed assertion — or by a
+ * test that ends without awaiting its drop animation — leaks into the next test. `cancelDrag()`
+ * alone isn't enough: it *starts* a drop animation, and while one is pending `dropAnimationStarted`
+ * makes any further `cancelDrag()` a no-op. So cancel, then wait for the animation's fallback timer.
+ */
+export async function settleEngine () {
+  if (smoothDnD.isDragging()) {
+    smoothDnD.cancelDrag()
+  }
+  await new Promise(resolve => setTimeout(resolve, 120))
+}
+
 /** The node a real pointer would hit — the innermost child of a wrapped draggable. */
 export function itemAt (container: HTMLElement, index: number) {
   const wrapper = container.children[index] as HTMLElement
@@ -205,7 +222,10 @@ export async function startDrag (
   index: number,
   hitTarget: () => Element | null = () => container,
 ): Promise<DragHandle> {
-  const original = document.elementFromPoint
+  // jsdom doesn't implement elementFromPoint at all, so `original` is usually undefined. Restoring
+  // that verbatim would leave the engine calling a non-function in any later test that reaches the
+  // hit test without going through startDrag — so fall back to a stub that simply hits nothing.
+  const original = document.elementFromPoint ?? (() => null)
   document.elementFromPoint = () => hitTarget() as Element
 
   const source = itemAt(container, index)

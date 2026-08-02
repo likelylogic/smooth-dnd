@@ -93,6 +93,11 @@ export const navigation: DemoSection[] = [
         title: 'Drop zones',
         description: 'behaviour: drop-zone — targets that accept a drop without reordering their own children.',
       },
+      {
+        name: 'drop-out',
+        title: 'Drop out to empty space',
+        description: 'A drop zone surrounding the sortables, so items can be dragged off a list and released into empty space.',
+      },
     ],
   },
   {

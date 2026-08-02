@@ -52,6 +52,90 @@
 }
 
 /* --------------------------------------------------------------------------
+ * drop-out
+ * -------------------------------------------------------------------------- */
+
+.drop-out {
+    display: flex;
+    gap: 50px;
+    margin: 30px;
+    padding: 30px;
+    /* deliberately taller than its content, so there is empty space to drop into */
+    min-height: 70vh;
+    border: 2px dashed #ccd;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-out.is-active {
+    border-color: #348;
+    background-color: #eef4ff;
+}
+
+.drop-out__lists {
+    display: flex;
+    gap: 30px;
+}
+
+.drop-out__list {
+    width: 220px;
+}
+
+.drop-out__aside {
+    flex: 1;
+    min-width: 0;
+}
+
+.drop-out__heading {
+    margin: 0 0 10px;
+    color: #556;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.drop-out__heading + .drop-out__heading,
+.drop-out__detached + .drop-out__heading,
+.drop-out__hint + .drop-out__heading {
+    margin-top: 30px;
+}
+
+.drop-out__reset {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border: 1px solid #ccd;
+    border-radius: 4px;
+    background: #fff;
+    color: #556;
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.drop-out__hint {
+    margin: 0;
+    color: #889;
+    font-size: 13px;
+}
+
+.drop-out__detached {
+    margin: 0;
+    padding-left: 20px;
+    color: #334;
+    font-size: 13px;
+}
+
+.drop-out__log {
+    margin: 0;
+    padding-left: 20px;
+    color: #778;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* --------------------------------------------------------------------------
  * chess
  * -------------------------------------------------------------------------- */
 

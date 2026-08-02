@@ -169,7 +169,12 @@ function handleDrop({ element, draggables, layout, getOptions }: ContainerProps)
           removedIndex,
           addedIndex: actualAddIndex,
           payload: draggableInfo.payload,
-          // droppedElement: draggableInfo.element.firstElementChild,
+          // The DOM drop handler needs the node when this container is receiving an item it did
+          // not own — it has no `removedIndex`, so nothing to move. Without this, any vanilla
+          // cross-container drop threw and the item was removed from the source but never added
+          // to the target. Framework adapters replace the handler entirely, which is why this
+          // only ever affected vanilla usage.
+          droppedElement: draggableInfo.element ? draggableInfo.element.firstElementChild : undefined,
         };
         dropHandler(dropHandlerParams, getOptions().onDrop);
       }

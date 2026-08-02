@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import smoothDnD from '../container'
-import { cleanupDom, flushFrames, ghostElement, makeContainer, startDrag } from './helpers'
+import { cleanupDom, flushFrames, ghostElement, makeContainer, settleEngine, startDrag } from './helpers'
 
 let created: { dispose: () => void }[] = []
 
@@ -28,7 +28,8 @@ beforeEach(() => {
   created = []
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await settleEngine()
   created.forEach(instance => {
     try {
       instance.dispose()

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import smoothDnD from '../container'
-import { cleanupDom, ghostElement, layoutContainer, makeContainer, startDrag } from './helpers'
+import { cleanupDom, ghostElement, layoutContainer, makeContainer, settleEngine, startDrag } from './helpers'
 
 let created: { dispose: () => void }[] = []
 
