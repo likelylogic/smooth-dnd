@@ -5,7 +5,7 @@ import { Axis, DraggableInfo, ElementX, GhostInfo, IContainer, MousePosition, Po
 import './polyfills';
 import { addCursorStyleToBody, addStyleToHead, removeStyle } from './styles';
 import * as Utils from './utils';
-import { ContainerOptions } from './exportTypes';
+import { ContainerOptions, DropAction, DropCompleteCallback, DropCompleteResult, DropEndpoint } from './exportTypes';
 
 const grabEvents = ['mousedown', 'touchstart'];
 const moveEvents = ['mousemove', 'touchmove'];
@@ -545,6 +545,91 @@ function onMouseUp() {
   }
 }
 
+const dropCompleteHandlers: DropCompleteCallback[] = [];
+
+function addDropCompleteHandler(handler: DropCompleteCallback) {
+  dropCompleteHandlers.push(handler);
+  return function unsubscribe() {
+    const index = dropCompleteHandlers.indexOf(handler);
+    if (index > -1) {
+      dropCompleteHandlers.splice(index, 1);
+    }
+  };
+}
+
+function describeEndpoint(container: IContainer | undefined, index: number): DropEndpoint | null {
+  if (!container) {
+    return null;
+  }
+  const options = container.getOptions();
+  return {
+    element: container.element,
+    containerId: options.containerId,
+    options,
+    index,
+  };
+}
+
+/**
+ * Summarise the whole drag, once.
+ *
+ * Must run *before* the per-container `handleDrop` loop: that is what clears each container's drag
+ * result, and this needs to read both ends of the move out of them.
+ */
+function summariseDrop(): DropCompleteResult | null {
+  if (!draggableInfo) {
+    return null;
+  }
+
+  const cancelled = draggableInfo.cancelDrop === true;
+  const sourceContainer = draggableInfo.container;
+  const sourceOptions = sourceContainer ? sourceContainer.getOptions() : undefined;
+  const sourceResult = sourceContainer ? sourceContainer.getDragResult() : null;
+
+  // For `behaviour: 'copy'` nothing is removed, so fall back to where the item was picked up.
+  const removedIndex = sourceResult && sourceResult.removedIndex !== null
+    ? sourceResult.removedIndex
+    : draggableInfo.elementIndex;
+
+  const targetContainer = draggableInfo.targetElement
+    ? containers.filter(p => p.element === draggableInfo.targetElement)[0]
+    : undefined;
+  const targetResult = targetContainer ? targetContainer.getDragResult() : null;
+
+  // Mirror the adjustment handleDrop applies, so this reports where the item actually ended up
+  // rather than an index that is one out whenever it moved down within its own container.
+  let addedIndex = targetResult ? targetResult.addedIndex : null;
+  if (addedIndex !== null && targetResult!.removedIndex !== null && targetResult!.removedIndex < addedIndex) {
+    addedIndex = addedIndex - 1;
+  }
+
+  const from = describeEndpoint(sourceContainer, removedIndex);
+  const to = addedIndex !== null ? describeEndpoint(targetContainer, addedIndex) : null;
+
+  let action: DropAction;
+  if (cancelled || !to) {
+    // dropped outside: only a removal if the source was configured to allow it
+    action = !cancelled && sourceResult && sourceResult.removedIndex !== null && sourceOptions && sourceOptions.removeOnDropOut
+      ? 'remove'
+      : 'none';
+  } else if (sourceOptions && sourceOptions.behaviour === 'copy') {
+    action = 'copy';
+  } else if (from && to.element === from.element) {
+    action = from.index === to.index ? 'none' : 'reorder';
+  } else {
+    action = 'move';
+  }
+
+  return {
+    action,
+    from,
+    to,
+    payload: draggableInfo.payload,
+    droppedOutside: !cancelled && draggableInfo.targetElement === null,
+    cancelled,
+  };
+}
+
 function resetDragState() {
   dragListeningContainers = null!;
   grabbedElement = null;
@@ -575,6 +660,9 @@ function completeDrop() {
   try {
     isDragging = false;
 
+    // Read both ends of the move before handleDrop clears the containers' drag results.
+    const summary = summariseDrop();
+
     try {
       fireOnDragStartEnd(false);
     } catch (error) {
@@ -590,6 +678,18 @@ function completeDrop() {
         record(error);
       }
       containerToCallDrop = pendingContainers.shift();
+    }
+
+    // Last, so subscribers see a settled DOM. Contained individually for the same reason the
+    // per-container drops are: one bad subscriber must not strand the others or the teardown.
+    if (summary) {
+      dropCompleteHandlers.slice().forEach(handler => {
+        try {
+          handler(summary);
+        } catch (error) {
+          record(error);
+        }
+      });
     }
   } finally {
     resetDragState();
@@ -870,6 +970,7 @@ function Mediator() {
     isDragging: function () {
       return isDragging;
     },
+    onDropComplete: addDropCompleteHandler,
     cancelDrag,
   };
 }

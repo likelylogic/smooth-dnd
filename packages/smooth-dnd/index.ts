@@ -1,7 +1,7 @@
 import * as constants from './src/constants';
 import container from './src/container';
 import * as dropHandlers from './src/dropHandlers';
-import { SmoothDnDCreator, ContainerOptions } from './src/exportTypes';
+import { SmoothDnDCreator, ContainerOptions, DropCompleteCallback } from './src/exportTypes';
 import { ElementX } from './src/interfaces';
 
 export * from './src/exportTypes';
@@ -32,6 +32,10 @@ deprecetedDefaultExport.cancelDrag = function () {
 
 deprecetedDefaultExport.isDragging = function () {
     return container.isDragging();
+}
+
+deprecetedDefaultExport.onDropComplete = function (handler) {
+    return container.onDropComplete(handler);
 }
 
 delegateProperty(deprecetedDefaultExport, container, 'useTransformForGhost');
