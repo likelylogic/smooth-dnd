@@ -18,6 +18,7 @@ import Copy from '../pages/copy'
 import DragClass from '../pages/drag-class'
 import DragDelay from '../pages/drag-delay'
 import DragHandle from '../pages/drag-handle'
+import DropIndicatorPage from '../pages/drop-indicator'
 import DropOut from '../pages/drop-out'
 import DropZone from '../pages/drop-zone'
 import DynamicContainers from '../pages/dynamic-containers'
@@ -33,6 +34,7 @@ import Simple from '../pages/simple'
 import SimpleHorizontal from '../pages/simple-horizontal'
 import SimpleScroller from '../pages/simple-scroller'
 import Table from '../pages/table'
+import Tree from '../pages/tree'
 import TransitionDuration from '../pages/transition-duration'
 
 export const pages: Record<string, ComponentType> = {
@@ -48,6 +50,8 @@ export const pages: Record<string, ComponentType> = {
   'copy': Copy,
   'drop-zone': DropZone,
   'drop-out': DropOut,
+  'drop-indicator': DropIndicatorPage,
+  'tree': Tree,
   'nested': Nested,
   'nested-group': NestedGroup,
   'lock-axis': LockAxis,

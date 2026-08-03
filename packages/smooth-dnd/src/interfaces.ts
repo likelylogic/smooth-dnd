@@ -1,4 +1,4 @@
-import { ContainerOptions } from './exportTypes';
+import { ContainerOptions, DropFeedback, DropIndicator, DropTarget } from './exportTypes';
 
 export type Position = { x: number; y: number };
 export type MousePosition = { clientX: number; clientY: number };
@@ -45,6 +45,18 @@ export interface DragResult {
   shadowBeginEnd: Boundary & { beginAdjustment: number; rect?: TopLeft, dropArea?: Boundary };
   containerBoxChanged?: boolean;
   dropPlaceholderContainer?: HTMLDivElement;
+  dropIndicator?: DropIndicator | null;
+  dropTarget?: DropTarget | null;
+  /** The feedback mode in force for this drag, resolved once from the option on the first frame. */
+  dropFeedback?: DropFeedback;
+  /**
+   * Where the siblings should part, when that differs from where the item would be inserted.
+   *
+   * An `into` target has no insertion index, but closing the gap for it would shift everything
+   * below by an item's height each time the pointer crossed the boundary. Holding the gap where it
+   * was keeps the layout still, so only the highlight changes.
+   */
+  gapIndex?: number | null;
 }
 
 export interface DraggableInfo {

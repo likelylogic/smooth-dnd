@@ -5,7 +5,7 @@ import { Axis, DraggableInfo, ElementX, GhostInfo, IContainer, MousePosition, Po
 import './polyfills';
 import { addCursorStyleToBody, addStyleToHead, removeStyle } from './styles';
 import * as Utils from './utils';
-import { ContainerOptions, DropAction, DropCompleteCallback, DropCompleteResult, DropEndpoint } from './exportTypes';
+import { ContainerOptions, DropAction, DropCompleteCallback, DropCompleteResult, DropEndpoint, DropKind } from './exportTypes';
 
 const grabEvents = ['mousedown', 'touchstart'];
 const moveEvents = ['mousemove', 'touchmove'];
@@ -582,7 +582,7 @@ function addDropCompleteHandler(handler: DropCompleteCallback) {
   };
 }
 
-function describeEndpoint(container: IContainer | undefined, index: number): DropEndpoint | null {
+function describeEndpoint(container: IContainer | undefined, index: number, kind: DropKind = 'at'): DropEndpoint | null {
   if (!container) {
     return null;
   }
@@ -592,6 +592,7 @@ function describeEndpoint(container: IContainer | undefined, index: number): Dro
     containerId: options.containerId,
     options,
     index,
+    kind,
   };
 }
 
@@ -628,8 +629,14 @@ function summariseDrop(): DropCompleteResult | null {
     addedIndex = addedIndex - 1;
   }
 
+  // A drop *onto* an item has no insertion index — the target is the item itself.
+  const dropTarget = targetResult ? targetResult.dropTarget : null;
+  const droppedInto = !!dropTarget && dropTarget.kind === 'into';
+
   const from = describeEndpoint(sourceContainer, removedIndex);
-  const to = addedIndex !== null ? describeEndpoint(targetContainer, addedIndex) : null;
+  const to = droppedInto
+    ? describeEndpoint(targetContainer, dropTarget!.index, 'into')
+    : addedIndex !== null ? describeEndpoint(targetContainer, addedIndex) : null;
 
   let action: DropAction;
   if (cancelled || !to) {
@@ -639,6 +646,10 @@ function summariseDrop(): DropCompleteResult | null {
       : 'none';
   } else if (sourceOptions && sourceOptions.behaviour === 'copy') {
     action = 'copy';
+  } else if (droppedInto) {
+    // Landing inside another item is a move whichever container it happens in — it is not a
+    // change of position among siblings, so calling it a reorder would be misleading.
+    action = 'move';
   } else if (from && to.element === from.element) {
     action = from.index === to.index ? 'none' : 'reorder';
   } else {
@@ -653,6 +664,11 @@ function summariseDrop(): DropCompleteResult | null {
     droppedOutside: !cancelled && draggableInfo.targetElement === null,
     cancelled,
   };
+}
+
+/** The wrapper currently being dragged, if any. Used to stop a container swallowing its ancestor. */
+export function getDraggedElement(): HTMLElement | null {
+  return draggableInfo ? (draggableInfo.element as HTMLElement) || null : null;
 }
 
 function resetDragState() {
