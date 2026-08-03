@@ -13,6 +13,7 @@
   "dependencies": {
     "@demo/shared": "workspace:*",
     "@likelylogic/react-smooth-dnd": "workspace:*",
+    "@likelylogic/smooth-dnd": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

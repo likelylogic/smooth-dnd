@@ -269,3 +269,96 @@
     background-color: peachpuff;
     margin-right: 10px;
 }
+
+/* --------------------------------------------------------------------------
+ * drop-indicator and tree
+ *
+ * Both pages render their own drop feedback from the bounds the library
+ * reports, positioned against the container — which smooth-dnd already makes
+ * a positioned ancestor.
+ * -------------------------------------------------------------------------- */
+
+.drop-hint {
+    margin: 0 0 20px;
+    color: #667;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.drop-line {
+    position: absolute;
+    height: 2px;
+    margin-top: -1px;
+    background-color: #3d6ea8;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.drop-line::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #3d6ea8;
+}
+
+.drop-into {
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px solid #3d6ea8;
+    border-radius: 4px;
+    background-color: rgba(61, 110, 168, 0.12);
+    pointer-events: none;
+}
+
+.tree-node {
+    height: 34px;
+    line-height: 34px;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 4px;
+    margin: 2px 0;
+    font-size: 14px;
+    cursor: default;
+    user-select: none;
+}
+
+.tree-node__icon {
+    display: inline-block;
+    width: 16px;
+    color: #99a;
+}
+
+.drop-readout {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 16px;
+    margin: 24px 0 0;
+    font-size: 12px;
+}
+
+.drop-readout dt {
+    color: #889;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.drop-readout dd {
+    margin: 0;
+    color: #334;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* a card dragged across the board's columns lands as a new column at this line */
+.drop-line-vertical {
+    position: absolute;
+    width: 3px;
+    margin-left: -1.5px;
+    background-color: #3d6ea8;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 5;
+}

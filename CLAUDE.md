@@ -58,6 +58,16 @@ Three conventions that are easy to trip over:
 for which pages exist; a page listed there without an implementation in *both* demos fails loudly at
 startup. That is deliberate — it keeps the two from drifting.
 
+## Working practice
+
+- One PR per feature or fix. Iterate on the branch — never stack correction PRs on merged work.
+- Anything that affects drag *feel* gets driven in the demos in a browser before the PR merges.
+  The test suite runs on jsdom and cannot see visual behaviour; it has repeatedly passed on
+  broken interactions.
+- One version bump per merged PR. CHANGELOG entries are terse and consumer-facing — what changed
+  and how to use it. Diagnosis and reasoning live in commit messages, not the changelog.
+- Squash-merge, so each piece of work lands as one commit on main.
+
 ## Conventions
 
 - Two-space indent, single quotes, no semicolons in the adapters and demos; the engine is older code

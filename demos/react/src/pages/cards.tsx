@@ -1,5 +1,6 @@
-import { useCallback, useState, type CSSProperties } from 'react'
+import { useCallback, useRef, useState, type CSSProperties } from 'react'
 import { Container, Draggable, type DropResult } from '@likelylogic/react-smooth-dnd'
+import type { ContainerOptions, DropIndicator } from '@likelylogic/smooth-dnd'
 import { applyDrag, generateItems } from '@demo/shared'
 
 const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
@@ -89,12 +90,38 @@ function createScene (): Scene {
  */
 export default function Cards () {
   const [scene, setScene] = useState<Scene>(createScene)
+  const [columnIndicator, setColumnIndicator] = useState<DropIndicator | null>(null)
+  const newColumnCount = useRef(0)
 
   const getCardPayload = useCallback((columnId: string, index: number) => {
     return scene.children.filter(p => p.id === columnId)[0].children[index]
   }, [scene])
 
   const onColumnDrop = useCallback((dropResult: DropResult) => {
+    setColumnIndicator(null)
+    const payload = dropResult.payload as Card | Column | undefined
+
+    // a card dropped between columns becomes a new column holding it; the source column's own
+    // drop handler removes it from where it came from
+    if (payload && payload.type === 'draggable') {
+      if (dropResult.addedIndex !== null) {
+        newColumnCount.current++
+        const column: Column = {
+          id: `new-column-${newColumnCount.current}`,
+          type: 'container',
+          name: `New column ${newColumnCount.current}`,
+          props: { orientation: 'vertical', className: 'card-container' },
+          children: [payload as Card],
+        }
+        setScene(scene => {
+          const children = [...scene.children]
+          children.splice(dropResult.addedIndex!, 0, column)
+          return { ...scene, children }
+        })
+      }
+      return
+    }
+
     setScene(scene => ({
       ...scene,
       children: applyDrag(scene.children, dropResult),
@@ -120,6 +147,14 @@ export default function Cards () {
     <div className="card-scene">
       <Container
         orientation="horizontal"
+        groupName="columns"
+        // columns sort among themselves, and also accept cards — which land as a new column
+        shouldAcceptDrop={(source: ContainerOptions) => source.groupName === 'columns' || source.groupName === 'col'}
+        // sorting columns opens a gap as usual; a card dragged across the board shows an
+        // indicator instead, since full columns sliding aside for a card would read as nonsense
+        dropFeedback={(source: ContainerOptions) => source.groupName === 'col' ? 'indicator' : 'gap'}
+        onDropReady={result => setColumnIndicator(result.dropIndicator ?? null)}
+        onDragLeave={() => setColumnIndicator(null)}
         onDrop={onColumnDrop}
         dragHandleSelector=".column-drag-handle"
         dropPlaceholder={{
@@ -164,6 +199,18 @@ export default function Cards () {
             </div>
           </Draggable>
         ))}
+
+        {/* where a card dragged between columns would land, as a new column */}
+        {columnIndicator && (
+          <div
+            className="drop-line-vertical"
+            style={{
+              left: columnIndicator.relative.left,
+              top: columnIndicator.relative.top,
+              height: columnIndicator.relative.height,
+            }}
+          />
+        )}
       </Container>
     </div>
   )

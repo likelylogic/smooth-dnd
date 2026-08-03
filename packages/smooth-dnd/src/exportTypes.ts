@@ -33,7 +33,59 @@ export interface DropResult {
 	addedIndex: number | null;
 	payload?: any;
 	element?: HTMLElement;
+	/**
+	 * Where a drop indicator should be drawn, when the container is in `dropFeedback: 'indicator'`
+	 * mode. Null while the pointer is not over the container.
+	 */
+	dropIndicator?: DropIndicator | null;
+	/** How and where the item would land. Present once the pointer is over a container. */
+	dropTarget?: DropTarget | null;
 }
+
+/**
+ * How an item lands.
+ *
+ * - `at` — between items, at `index`
+ * - `into` — onto the item at `index`, which is what trees and folders need
+ */
+export type DropKind = 'at' | 'into';
+
+export interface DropTarget {
+	kind: DropKind;
+	/** The insertion point for `at`, or the index of the item being dropped onto for `into`. */
+	index: number;
+}
+
+/** A rectangle in the CSS sense — an origin and a size, ready to position an element with. */
+export interface Box {
+	top: number;
+	left: number;
+	width: number;
+	height: number;
+}
+
+/**
+ * Where the item would land, as a rectangle rather than an index.
+ *
+ * Spans the gap the item would occupy: along the layout axis it runs from the end of the preceding
+ * item to the start of the following one, and across the other axis it spans the container. Draw a
+ * line down the middle of it, or fill it — the shape is deliberately not opinionated.
+ *
+ * At the ends of a list, and in an empty container, it runs to the container's own bounds.
+ */
+export interface DropIndicator {
+	/** Viewport coordinates, as `getBoundingClientRect` would report them. */
+	viewport: Box;
+	/**
+	 * Relative to the container's border box. This is what an absolutely-positioned overlay inside
+	 * the container wants, and saves the caller doing the subtraction.
+	 */
+	relative: Box;
+	/** The container the indicator belongs to. */
+	container: HTMLElement;
+}
+
+export type DropFeedback = 'gap' | 'indicator' | 'none';
 
 export interface DropPlaceholderOptions {
 	className?: string;
@@ -50,6 +102,11 @@ export interface DropEndpoint {
 	options: ContainerOptions;
 	/** Index within that container. */
 	index: number;
+	/**
+	 * How the item landed here. `at` means it was inserted at `index`; `into` means it was dropped
+	 * onto the item at `index`. Always `at` for the `from` end.
+	 */
+	kind: DropKind;
 }
 
 /**
@@ -97,6 +154,22 @@ export interface ContainerOptions {
 	 * closing over them at the call site. Not used by the engine for anything else.
 	 */
 	containerId?: string | number;
+	/**
+	 * How a pending drop is shown: `gap` (default) slides the siblings apart; `indicator` keeps
+	 * them still and reports where the drop would land as `dropIndicator` bounds on `onDropReady`;
+	 * `none` keeps them still and reports nothing.
+	 *
+	 * May be a function of the source container's options and the payload, decided once per drag —
+	 * so one container can sort its own kind with a gap but show an indicator for a foreign payload
+	 * (a card dragged across a board's columns, say).
+	 */
+	dropFeedback?: DropFeedback | ((sourceContainerOptions: ContainerOptions, payload: any) => DropFeedback);
+	/**
+	 * Allow dropping *onto* an item as well as between items — what trees and folders need. The
+	 * middle of an item resolves to `dropTarget: { kind: 'into', index }`; its edges still insert.
+	 * Works with any `dropFeedback`, including `gap`.
+	 */
+	dropOnItems?: boolean;
 	groupName?: string; // if not defined => container will not interfere with other containers
 	orientation?: 'vertical' | 'horizontal';
 	dragHandleSelector?: string;

@@ -31,7 +31,7 @@ export const navigation: DemoSection[] = [
       {
         name: 'cards',
         title: 'Card board',
-        description: 'A Trello-style board. The columns are draggable too, so this nests a horizontal container of vertical ones.',
+        description: 'A Trello-style board. Columns sort with a gap; a card dragged between columns shows an indicator and drops into a new column.',
       },
       {
         name: 'form',
@@ -97,6 +97,21 @@ export const navigation: DemoSection[] = [
         name: 'drop-out',
         title: 'Drop out to empty space',
         description: 'A drop zone surrounding the sortables, so items can be dragged off a list and released into empty space.',
+      },
+    ],
+  },
+  {
+    title: 'Drop targeting',
+    pages: [
+      {
+        name: 'drop-indicator',
+        title: 'Drop indicator',
+        description: 'dropFeedback: indicator — nothing slides apart; the library reports bounds and the page draws its own line.',
+      },
+      {
+        name: 'tree',
+        title: 'Drop onto items',
+        description: 'dropOnItems with the default gap feedback — betweens slide the nodes apart, intos highlight the node instead.',
       },
     ],
   },
